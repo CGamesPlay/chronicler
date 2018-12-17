@@ -1,8 +1,8 @@
 import * as React from "react";
 import ReactDOM from "react-dom";
 
-const App = () => <span>Hello, world!</span>;
+import "bulma/css/bulma.css";
 
-const root = document.createElement("div");
-document.body.appendChild(root);
-ReactDOM.render(<App />, root);
+import App from "./App";
+
+ReactDOM.render(<App />, document.getElementById("app"));
