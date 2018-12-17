@@ -3,13 +3,14 @@
 export default class Tab {
   id: string;
   title: string;
+  url: string;
 
   constructor(id: string) {
     this.id = id;
-    this.title = "New Tab";
+    this.title = "Blank Tab";
   }
 
-  setWebview(w: Webview) {
-    console.log("webview", w);
+  update(data: any) {
+    Object.assign(this, data);
   }
 }

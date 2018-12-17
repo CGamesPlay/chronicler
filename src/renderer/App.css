@@ -1,24 +1,8 @@
-html,
-body,
-#app {
-  height: 100%;
-}
-
-#app {
-  display: flex;
-  flex-direction: column;
+html {
+  background: transparent;
 }
 
 .tabs.is-fullwidth .App__newTabButton {
   flex: 0;
   width: 2rem;
-}
-
-.App__tabViews {
-  flex: 1;
-}
-
-.App__tabView {
-  width: 100%;
-  height: 100%;
 }
