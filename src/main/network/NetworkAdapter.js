@@ -30,7 +30,7 @@ export default class NetworkAdapter {
   constructor(handlers: ProtocolHandlerMap, persister: IPersister) {
     this.handlers = handlers;
     this.persister = persister;
-    this.mode = PASSTHROUGH;
+    this.mode = REPLAY;
     this.ready = Promise.resolve(undefined);
   }
 
@@ -105,7 +105,7 @@ export default class NetworkAdapter {
         } else if (this.mode === PASSTHROUGH) {
           return handler.request(request);
         } else {
-          throw new Error("not implemented");
+          return this.persister.replayRequest(request);
         }
       })
       .then(

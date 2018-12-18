@@ -2,6 +2,7 @@
 import type {
   Request,
   SuccessResponse,
+  FailureResponse,
   IRequestRecording,
   IRecordingSession,
   IPersister,
@@ -67,5 +68,14 @@ export default class NullPersister implements IPersister {
 
   createRecordingSession(): Promise<NullPersister.RecordingSession> {
     return Promise.resolve(new NullRecordingSession());
+  }
+
+  replayRequest(): Promise<FailureResponse> {
+    return Promise.resolve({
+      error: {
+        code: ("ENOENT": any),
+        debug: new Error("Not implemented").toString(),
+      },
+    });
   }
 }

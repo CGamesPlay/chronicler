@@ -60,4 +60,6 @@ export interface IPersister {
   // Indicate that a new recording session has begun. This will always be called
   // before any requests are recorded.
   createRecordingSession(): Promise<IRecordingSession>;
+  // Replay a request.
+  replayRequest(Request): Promise<Response>;
 }

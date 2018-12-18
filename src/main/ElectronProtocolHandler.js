@@ -26,7 +26,6 @@ export default class ElectronProtocolHandler {
       handlers[scheme] = new protocols[scheme]();
     });
     this.networkAdapter = new NetworkAdapter(handlers, new NullPersister());
-    this.networkAdapter.startRecordingSession();
     Object.keys(protocols).forEach(scheme =>
       this.session.protocol.interceptStreamProtocol(
         scheme,
