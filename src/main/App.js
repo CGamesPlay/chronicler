@@ -36,18 +36,7 @@ export default class App extends EventEmitter {
       this.window.webContents.openDevTools();
     }*/
 
-    if (isDevelopment) {
-      const port = process.env.ELECTRON_WEBPACK_WDS_PORT || "9800";
-      this.window.loadURL(`http://localhost:${port}`);
-    } else {
-      this.window.loadURL(
-        formatUrl({
-          pathname: path.join(__dirname, "index.html"),
-          protocol: "file",
-          slashes: true,
-        }),
-      );
-    }
+    this.window.loadURL("app://main/index.html");
 
     this.window.on("closed", () => {
       this.window = null;

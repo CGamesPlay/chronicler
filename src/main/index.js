@@ -3,6 +3,7 @@
 import { app, BrowserWindow } from "electron";
 
 import App from "./app";
+import registerProtocols from "./protocols";
 
 // global reference to mainApp (necessary to prevent window from being
 // garbage collected)
@@ -34,5 +35,6 @@ app.on("activate", () => {
 
 // create main BrowserWindow when electron is ready
 app.on("ready", () => {
+  registerProtocols();
   createMainApp();
 });

@@ -2,7 +2,7 @@ html {
   background: transparent;
 }
 
-.tabs.is-fullwidth .App__newTabButton {
+.tabs.is-fullwidth .Chrome__newTabButton {
   flex: 0;
   width: 2rem;
 }

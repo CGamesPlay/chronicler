@@ -3,6 +3,6 @@ import ReactDOM from "react-dom";
 
 import "bulma/css/bulma.css";
 
-import App from "./App";
+import Chrome from "./Chrome";
 
-ReactDOM.render(<App />, document.getElementById("app"));
+ReactDOM.render(<Chrome />, document.getElementById("app"));

@@ -15,9 +15,9 @@ import TabBar from "./common/TabBar";
 import Tab from "./Tab";
 import BrowserControls from "./BrowserControls";
 
-import "./App.css";
+import "./Chrome.css";
 
-export default class App extends React.Component<{}> {
+export default class Chrome extends React.Component<{}> {
   tabs: Array<Tab> = [];
   activeTab: ?Tab;
 
@@ -35,7 +35,7 @@ export default class App extends React.Component<{}> {
 
   render() {
     return (
-      <div className="App__controls">
+      <div className="Chrome__controls">
         <BrowserControls
           url={this.activeTab ? this.activeTab.url : ""}
           onChangeUrl={this.handleChangeUrl}
@@ -46,7 +46,7 @@ export default class App extends React.Component<{}> {
               {tab.title}
             </TabBar.Tab>
           ))}
-          <TabBar.Tab className="App__newTabButton">+</TabBar.Tab>
+          <TabBar.Tab className="Chrome__newTabButton">+</TabBar.Tab>
         </TabBar>
       </div>
     );
