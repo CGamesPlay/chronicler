@@ -7,6 +7,7 @@ import {
   NetworkAdapter,
   HttpProtocolHandler,
   HttpsProtocolHandler,
+  NullPersister,
 } from "./network";
 
 const protocols = {
@@ -24,7 +25,8 @@ export default class ElectronProtocolHandler {
     Object.keys(protocols).forEach(scheme => {
       handlers[scheme] = new protocols[scheme]();
     });
-    this.networkAdapter = new NetworkAdapter(handlers, null);
+    this.networkAdapter = new NetworkAdapter(handlers, new NullPersister());
+    this.networkAdapter.startRecordingSession();
     Object.keys(protocols).forEach(scheme =>
       this.session.protocol.interceptStreamProtocol(
         scheme,

@@ -5,3 +5,4 @@ export {
   HttpProtocolHandler,
   HttpsProtocolHandler,
 } from "./HttpProtocolHandler";
+export { default as NullPersister } from "./NullPersister";
