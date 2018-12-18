@@ -6398,6 +6398,11 @@ stream-browserify@^2.0.1:
     inherits "~2.0.1"
     readable-stream "^2.0.2"
 
+stream-concat@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/stream-concat/-/stream-concat-0.3.0.tgz#34b0eadb80f24ed696cba70602b71c383067d32b"
+  integrity sha512-HTqtuDjG9J2mKoHYgW827oA0WVx8o997vj2GRE/wrUMSkMZSzMa1OXLPqYTxEYwcuvuT8n6CsxjyTinI6ezfmQ==
+
 stream-each@^1.1.0:
   version "1.2.3"
   resolved "https://registry.yarnpkg.com/stream-each/-/stream-each-1.2.3.tgz#ebe27a0c389b04fbcc233642952e10731afa9bae"

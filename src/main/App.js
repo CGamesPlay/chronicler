@@ -14,7 +14,7 @@ import {
   TAB_NAVIGATE,
 } from "../common/events";
 import Tab from "./Tab";
-import NetworkAdapter from "./NetworkAdapter";
+import ElectronProtocolHandler from "./ElectronProtocolHandler";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -22,7 +22,7 @@ export default class App extends EventEmitter {
   id: string;
   chromeHeight: number;
   session: any;
-  networkAdapter: NetworkAdapter;
+  protocolHandler: ElectronProtocolHandler;
   window: BrowserWindow;
   tabs: Array<Tab>;
   activeTab: ?Tab;
@@ -37,8 +37,7 @@ export default class App extends EventEmitter {
     this.tabs = [];
 
     this.session = session.fromPartition(this.id);
-    this.networkAdapter = new NetworkAdapter(this.session.protocol);
-    this.networkAdapter.setRecording();
+    this.protocolHandler = new ElectronProtocolHandler(this.session);
 
     this.window.loadURL("app://main/index.html");
 
