@@ -1,8 +1,9 @@
 // @flow
 import * as http from "http";
 import * as https from "https";
-import intoStream from "into-stream";
+import * as fs from "fs";
 import { parse as parseUrl } from "url";
+import intoStream from "into-stream";
 
 import {
   ERR_FAILED,
@@ -56,39 +57,93 @@ export default class NetworkAdapter {
           data: intoStream(errorPage(code, extra)),
         });
       };
-      const scheme = request.url.indexOf("https://") === 0 ? https : http;
-      const url = parseUrl(request.url);
-      const req = scheme.request(
-        {
-          ...url,
-          headers: request.headers,
-          method: request.method,
-        },
-        res => {
-          resolve({
-            statusCode: res.statusCode,
-            headers: res.headers,
-            data: res,
-          });
-        },
-      );
-      req.on("error", e => {
-        switch (e.code) {
-          case "ECONNREFUSED":
-            renderError(ERR_CONNECTION_REFUSED);
-          case "ENOTFOUND":
-            renderError(ERR_NAME_NOT_RESOLVED);
-          case "ERR_TLS_CERT_ALTNAME_INVALID":
-            renderError(ERR_CERT_COMMON_NAME_INVALID);
-          case "DEPTH_ZERO_SELF_SIGNED_CERT":
-            renderError(ERR_CERT_AUTHORITY_INVALID);
-          default:
-            renderError(ERR_FAILED, e.toString());
-        }
+      this.sendRequest(request, res => {
+        resolve({
+          statusCode: res.statusCode,
+          headers: res.headers,
+          data: res,
+        });
+      }).then(req => {
+        req.on("error", e => {
+          switch (e.code) {
+            case "ECONNREFUSED":
+              renderError(ERR_CONNECTION_REFUSED);
+            case "ENOTFOUND":
+              renderError(ERR_NAME_NOT_RESOLVED);
+            case "ERR_TLS_CERT_ALTNAME_INVALID":
+              renderError(ERR_CERT_COMMON_NAME_INVALID);
+            case "DEPTH_ZERO_SELF_SIGNED_CERT":
+              renderError(ERR_CERT_AUTHORITY_INVALID);
+            default:
+              renderError(ERR_FAILED, e.toString());
+          }
+        });
       });
-
-      //req.write(postData);
-      req.end();
     }).then(callback);
   };
+
+  sendRequest(
+    request: any,
+    callback: any => void,
+  ): Promise<http.ClientRequest> {
+    return Promise.all(
+      (request.uploadData || []).map(chunk => {
+        if (chunk.file) {
+          return new Promise((resolve, reject) => {
+            fs.stat(chunk.file, (err, stats) => {
+              if (err) reject(err);
+              else resolve({ ...chunk, size: stats.size });
+            });
+          });
+        } else {
+          return chunk;
+        }
+      }),
+    ).then(uploads => {
+      const contentLength = uploads.reduce((acc: number, chunk: any) => {
+        if (chunk.bytes) {
+          return acc + chunk.bytes.length;
+        } else if (chunk.file) {
+          return acc + chunk.size;
+        } else {
+          throw new Error("not implemented");
+        }
+      }, 0);
+      const scheme = request.url.indexOf("https://") === 0 ? https : http;
+      const url = parseUrl(request.url);
+      let headers = request.headers;
+      if (contentLength > 0) {
+        headers = { ...headers, "Content-Length": contentLength };
+      }
+      const req: http.ClientRequest = (scheme.request(
+        { ...url, headers, method: request.method },
+        callback,
+      ): any);
+
+      if (request.uploadData) {
+        const chunks = request.uploadData.map(chunk => next => {
+          if (chunk.bytes) {
+            req.write(chunk.bytes);
+            next();
+          } else if (chunk.file) {
+            const stream = fs.createReadStream(chunk.file);
+            stream.pipe(req, { end: false });
+            stream.on("end", next);
+          } else {
+            throw new Error("not implemented");
+          }
+        });
+        chunks.push(() => req.end());
+        const next = () => {
+          const thunk = chunks.shift();
+          thunk(next);
+        };
+        next();
+      } else {
+        req.end();
+      }
+
+      return req;
+    });
+  }
 }

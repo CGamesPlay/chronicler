@@ -48,5 +48,7 @@ yarn dist:dir
 ### Useful links
 
 - http://vcap.me/
+- https://cgi-lib.berkeley.edu/ex/fup.html
+- https://httpbin.org/
 - http://httpstat.us/
 - https://badssl.com/
