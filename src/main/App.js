@@ -2,7 +2,7 @@
 import { format as formatUrl } from "url";
 import * as path from "path";
 import EventEmitter from "events";
-import { BrowserWindow, BrowserView, ipcMain } from "electron";
+import { BrowserWindow, BrowserView, ipcMain, session } from "electron";
 
 import {
   CHROME_MESSAGE,
@@ -11,14 +11,18 @@ import {
   CHROME_RESIZE,
   TAB_UPDATE,
   TAB_FOCUS,
+  TAB_NAVIGATE,
 } from "../common/events";
 import Tab from "./Tab";
+import NetworkAdapter from "./NetworkAdapter";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 export default class App extends EventEmitter {
   id: string;
   chromeHeight: number;
+  session: any;
+  networkAdapter: NetworkAdapter;
   window: BrowserWindow;
   tabs: Array<Tab>;
   activeTab: ?Tab;
@@ -32,9 +36,9 @@ export default class App extends EventEmitter {
     });
     this.tabs = [];
 
-    /*if (isDevelopment) {
-      this.window.webContents.openDevTools();
-    }*/
+    this.session = session.fromPartition(this.id);
+    this.networkAdapter = new NetworkAdapter(this.session.protocol);
+    this.networkAdapter.setRecording();
 
     this.window.loadURL("app://main/index.html");
 
@@ -70,19 +74,22 @@ export default class App extends EventEmitter {
     this.tabs.push(tab);
     this.activeTab = tab;
     tab.on(TAB_UPDATE, this.handleTabUpdate);
-    tab.loadURL("about:blank");
+    tab.loadURL("http://vcap.me");
     this.updateActiveTab();
     this.sendChromeMessage(TAB_UPDATE, tab.toJSON());
   }
 
   handleChromeMessage = (event: any, data: ChromeMessageData) => {
     if (event.sender === this.window.webContents) {
-      if (data.type === CHROME_READY) {
-        this.handleChromeReady();
-      } else if (data.type === CHROME_RESIZE) {
-        this.handleChromeResize(data.payload);
-      } else if (data.type === TAB_UPDATE) {
-        this.handleRequestTabUpdate(data.payload);
+      switch (data.type) {
+        case CHROME_READY:
+          return this.handleChromeReady();
+        case CHROME_RESIZE:
+          return this.handleChromeResize(data.payload);
+        case TAB_UPDATE:
+          return this.handleRequestTabUpdate(data.payload);
+        case TAB_NAVIGATE:
+          return this.handleRequestTabNavigate(data.payload);
       }
     }
   };
@@ -111,6 +118,18 @@ export default class App extends EventEmitter {
     const tab = this.tabs.find(t => t.id === data.id);
     if (!tab) return;
     tab.requestUpdate(data);
+  }
+
+  handleRequestTabNavigate(data: any) {
+    const tab = this.tabs.find(t => t.id === data.id);
+    if (!tab) return;
+    if (data.stop) {
+      tab.stop();
+    } else if (data.offset !== 0) {
+      tab.goToOffset(data.offset);
+    } else if (data.offset === 0) {
+      tab.refresh();
+    }
   }
 
   handleTabUpdate = (data: any) => {

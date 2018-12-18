@@ -10,7 +10,7 @@ import registerProtocols from "./protocols";
 let mainApp;
 
 const createMainApp = () => {
-  mainApp = new App();
+  mainApp = new App("main");
   mainApp.on("closed", () => {
     mainApp = null;
   });

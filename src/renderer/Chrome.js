@@ -10,6 +10,7 @@ import {
   CHROME_RESIZE,
   TAB_UPDATE,
   TAB_FOCUS,
+  TAB_NAVIGATE,
 } from "../common/events";
 import TabBar from "./common/TabBar";
 import Tab from "./Tab";
@@ -34,16 +35,24 @@ export default class Chrome extends React.Component<{}> {
   }
 
   render() {
+    const activeTab = this.activeTab || new Tab("null");
     return (
       <div className="Chrome__controls">
         <BrowserControls
-          url={this.activeTab ? this.activeTab.url : ""}
+          url={activeTab.url}
+          loading={activeTab.loadFraction < 1}
+          canNavigateBack={activeTab.canNavigateBack}
+          canNavigateForward={activeTab.canNavigateForward}
           onChangeUrl={this.handleChangeUrl}
+          onNavigateBack={this.handleBack}
+          onNavigateForward={this.handleForward}
+          onRefresh={this.handleRefresh}
+          onStop={this.handleStop}
         />
         <TabBar>
           {this.tabs.map(tab => (
             <TabBar.Tab key={tab.id} active={tab === this.activeTab}>
-              {tab.title}
+              {tab.title || "Loading..."}
             </TabBar.Tab>
           ))}
           <TabBar.Tab className="Chrome__newTabButton">+</TabBar.Tab>
@@ -59,6 +68,26 @@ export default class Chrome extends React.Component<{}> {
   handleChangeUrl = (url: string) => {
     if (!this.activeTab) return;
     this.sendChromeMessage(TAB_UPDATE, { id: this.activeTab.id, url });
+  };
+
+  handleBack = () => {
+    if (!this.activeTab) return;
+    this.sendChromeMessage(TAB_NAVIGATE, { id: this.activeTab.id, offset: -1 });
+  };
+
+  handleForward = () => {
+    if (!this.activeTab) return;
+    this.sendChromeMessage(TAB_NAVIGATE, { id: this.activeTab.id, offset: 1 });
+  };
+
+  handleRefresh = () => {
+    if (!this.activeTab) return;
+    this.sendChromeMessage(TAB_NAVIGATE, { id: this.activeTab.id, offset: 0 });
+  };
+
+  handleStop = () => {
+    if (!this.activeTab) return;
+    this.sendChromeMessage(TAB_NAVIGATE, { id: this.activeTab.id, stop: true });
   };
 
   handleChromeMessage = (event: string, data: ChromeMessageData) => {

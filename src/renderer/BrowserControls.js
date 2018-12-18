@@ -5,6 +5,13 @@ import { parseUrl } from "./utils";
 
 type Props = {
   url: string,
+  loading: boolean,
+  canNavigateBack: boolean,
+  canNavigateForward: boolean,
+  onNavigateBack?: () => void,
+  onNavigateForward?: () => void,
+  onRefresh?: () => void,
+  onStop?: () => void,
   onChangeUrl?: string => void,
 };
 
@@ -38,15 +45,36 @@ export default class BrowserControls extends React.Component<Props> {
     return (
       <div className="field is-grouped is-marginless">
         <div className="control has-addons">
-          <button className="button">Offline</button>
-          <button className="button">Back</button>
-          <button className="button">Forward</button>
-          <button className="button">Refresh</button>
+          <button
+            className="button"
+            disabled={!this.props.canNavigateBack}
+            onClick={this.props.onNavigateBack}
+          >
+            Back
+          </button>
+          <button
+            className="button"
+            disabled={!this.props.canNavigateForward}
+            onClick={this.props.onNavigateForward}
+          >
+            Forward
+          </button>
+          <button
+            className="button"
+            onClick={
+              this.props.loading ? this.props.onStop : this.props.onRefresh
+            }
+          >
+            {this.props.loading ? "Stop" : "Refresh"}
+          </button>
         </div>
         <div className="control is-expanded">
           <form onSubmit={this.handleUrlSubmit}>
             <input ref={e => (this.urlInput = e)} className="input" />
           </form>
+        </div>
+        <div className="control has-addons">
+          <button className="button">Offline</button>
         </div>
       </div>
     );

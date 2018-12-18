@@ -25,7 +25,7 @@ export default class Tab extends EventEmitter {
       webPreferences: {
         nodeIntegration: false,
         sandbox: true,
-        partition: this.app.id,
+        session: this.app.session,
         affinity: this.app.id,
         scrollBounce: true,
         backgroundThrottling: true,
@@ -53,11 +53,30 @@ export default class Tab extends EventEmitter {
     this.view.webContents.loadURL(url);
   }
 
+  goToOffset(offset: number) {
+    this.view.webContents.goToOffset(offset);
+  }
+
+  refresh() {
+    this.view.webContents.reload();
+  }
+
+  stop() {
+    this.view.webContents.stop();
+  }
+
   toJSON() {
+    const webContents = this.view.webContents;
+    const loadFraction = !webContents.isLoadingMainFrame()
+      ? 1
+      : !webContents.isWaitingForResponse() ? 0.5 : 0.1;
     return {
       id: this.id,
-      url: this.view.webContents.getURL(),
-      title: this.view.webContents.getTitle(),
+      url: webContents.getURL(),
+      title: webContents.getTitle(),
+      loadFraction,
+      canNavigateBack: webContents.canGoBack(),
+      canNavigateForward: webContents.canGoForward(),
     };
   }
 

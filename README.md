@@ -44,3 +44,9 @@ yarn dist
 # `yarn compile` & create unpacked build with electron-builder
 yarn dist:dir
 ```
+
+### Useful links
+
+- http://vcap.me/
+- http://httpstat.us/
+- https://badssl.com/
