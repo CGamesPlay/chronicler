@@ -63,6 +63,12 @@ export default class ElectronProtocolHandler {
               else resolve({ ...chunk, size: stats.size });
             });
           });
+        } else if (chunk.blobUUID) {
+          return new Promise(resolve => {
+            this.session.getBlobData(chunk.blobUUID, bytes => {
+              resolve({ ...chunk, bytes });
+            });
+          });
         } else {
           return chunk;
         }
