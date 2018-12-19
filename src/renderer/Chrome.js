@@ -53,7 +53,7 @@ export default class Chrome extends React.Component<{}, State> {
           onChangeUrl={this.handleChangeUrl}
           onNavigateBack={this.handleBack}
           onNavigateForward={this.handleForward}
-          onRefresh={this.handleRefresh}
+          onReload={this.handleReload}
           onStop={this.handleStop}
           onChangeNetworkMode={this.handleRequestNetworkMode}
         />
@@ -88,7 +88,7 @@ export default class Chrome extends React.Component<{}, State> {
     this.sendChromeMessage(TAB_NAVIGATE, { id: this.activeTab.id, offset: 1 });
   };
 
-  handleRefresh = () => {
+  handleReload = () => {
     if (!this.activeTab) return;
     this.sendChromeMessage(TAB_NAVIGATE, { id: this.activeTab.id, offset: 0 });
   };

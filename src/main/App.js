@@ -159,7 +159,10 @@ export default class App extends EventEmitter {
         switch (mode) {
           case "record":
             if (this.networkAdapter.isRecording()) return;
-            return this.networkAdapter.startRecordingSession();
+            // Refresh the current page to kick off the recording
+            return this.networkAdapter.startRecordingSession().then(() => {
+              if (this.activeTab) this.activeTab.reload();
+            });
           case "replay":
             return this.networkAdapter.setReplayMode();
           case "passthrough":
@@ -186,7 +189,7 @@ export default class App extends EventEmitter {
     } else if (data.offset !== 0) {
       tab.goToOffset(data.offset);
     } else if (data.offset === 0) {
-      tab.refresh();
+      tab.reload();
     }
   }
 

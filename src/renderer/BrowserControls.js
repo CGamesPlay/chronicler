@@ -13,7 +13,7 @@ type Props = {
   networkMode: NetworkMode,
   onNavigateBack?: () => void,
   onNavigateForward?: () => void,
-  onRefresh?: () => void,
+  onReload?: () => void,
   onStop?: () => void,
   onChangeUrl?: string => void,
   onChangeNetworkMode?: NetworkMode => void,
@@ -79,10 +79,10 @@ export default class BrowserControls extends React.Component<Props> {
           <button
             className="button"
             onClick={
-              this.props.loading ? this.props.onStop : this.props.onRefresh
+              this.props.loading ? this.props.onStop : this.props.onReload
             }
           >
-            {this.props.loading ? "Stop" : "Refresh"}
+            {this.props.loading ? "Stop" : "Reload"}
           </button>
         </div>
         <div className="control is-expanded">

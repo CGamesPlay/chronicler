@@ -43,6 +43,10 @@ export default class Tab extends EventEmitter {
     this.view.setBounds(this.app.getTabBounds());
   }
 
+  openDevTools() {
+    this.view.webContents.openDevTools();
+  }
+
   requestUpdate(data: any) {
     if (data.url) {
       this.view.webContents.loadURL(data.url);
@@ -57,7 +61,7 @@ export default class Tab extends EventEmitter {
     this.view.webContents.goToOffset(offset);
   }
 
-  refresh() {
+  reload() {
     this.view.webContents.reload();
   }
 
