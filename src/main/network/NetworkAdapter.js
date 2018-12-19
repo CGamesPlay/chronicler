@@ -127,7 +127,7 @@ export default class NetworkAdapter {
   renderError(response: ?Response, error: ?Error): SuccessResponse {
     return {
       data: {
-        statusCode: 200,
+        statusCode: 0,
         headers: {
           "Content-Type": "text/html",
         },

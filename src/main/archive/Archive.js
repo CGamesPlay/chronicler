@@ -23,9 +23,18 @@ type Replay = {
   method: string,
   requestHeaders: { [string]: string },
   requestBody: ?Buffer,
-  statusCode: ?number,
-  responseHeaders: ?{ [string]: string },
+  statusCode: number,
+  responseHeaders: { [string]: string },
   responseBody: ?Buffer,
+};
+
+type Page = {
+  id: number,
+  url: string,
+  // The original URL that was used, when the actual URL is created from the
+  // History API.
+  originalUrl: ?string,
+  title: string,
 };
 
 export default class Archive {
@@ -76,15 +85,40 @@ export default class Archive {
     return this.db
       .run(
         SQL`
-INSERT INTO responses ( requestId, statusCode, headers, body )
-VALUES ( ${response.requestId}, ${response.statusCode}, ${JSON.stringify(
-          response.headers,
-        )}, ${response.body} )`,
+        INSERT INTO responses ( requestId, statusCode, headers, body )
+        VALUES ( ${response.requestId}, ${
+          response.statusCode
+        }, ${JSON.stringify(response.headers)}, ${response.body} )`,
       )
       .then(({ lastID }) => lastID);
   }
 
-  findReplay(url: string, method: string): Promise<Replay> {
+  upsertPage(page: $Shape<Page>): Promise<number> {
+    return this.db
+      .run(
+        SQL`
+        INSERT OR REPLACE INTO pages ( url, originalUrl, title )
+        VALUES ( ${page.url}, ${page.originalUrl}, ${page.title} )`,
+      )
+      .then(({ lastID }) => lastID);
+  }
+
+  setPageTitle(id: number, title: string): Promise<mixed> {
+    return this.db.run(SQL`UPDATE pages SET title = ${title} WHERE id = ${id}`);
+  }
+
+  findReplay(url: string, method: string): Promise<?Replay> {
+    return this.findReplayDirect(url, method).then(replay => {
+      if (replay) return replay;
+      if (method !== "GET") return null;
+      return this.findSubstitutePage(url).then(originalUrl => {
+        if (!originalUrl) return null;
+        return this.findReplayDirect(originalUrl, method);
+      });
+    });
+  }
+
+  findReplayDirect(url: string, method: string): Promise<?Replay> {
     return this.db
       .get(
         SQL`
@@ -100,7 +134,7 @@ VALUES ( ${response.requestId}, ${response.statusCode}, ${JSON.stringify(
         LIMIT 1`,
       )
       .then(raw => {
-        if (!raw) return null;
+        if (!raw || raw.statusCode == null) return null;
         const result = { ...raw };
         result.requestHeaders = JSON.parse(raw.requestHeaders);
         if (raw.responseHeaders) {
@@ -108,5 +142,16 @@ VALUES ( ${response.requestId}, ${response.statusCode}, ${JSON.stringify(
         }
         return result;
       });
+  }
+
+  // If a replay request comes in for a page that was never visited, but was
+  // from an in-page navigation, respond with the original page's HTML data.
+  // This method isn't aware of the type of request, however, so this could
+  // theoretically lead to problems if the URL doesn't refer to a resource that
+  // uses the HTML History API (e.g. an image or JavaScript file).
+  findSubstitutePage(url: string): Promise<?string> {
+    return this.db
+      .get(SQL`SELECT originalUrl FROM pages WHERE url = ${url}`)
+      .then(res => (res ? res.originalUrl : null));
   }
 }

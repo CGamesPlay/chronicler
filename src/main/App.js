@@ -31,10 +31,14 @@ const protocols = {
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
+const dbFilename = "test.db";
+const initialUrl = "https://httpstat.us/";
+
 export default class App extends EventEmitter {
   id: string;
   chromeHeight: number;
   session: any;
+  archive: Archive;
   networkAdapter: NetworkAdapter;
   protocolHandler: ElectronProtocolHandler;
   tabs: Array<Tab>;
@@ -50,7 +54,8 @@ export default class App extends EventEmitter {
     this.session = session.fromPartition(this.id);
     this.isChangingNetworkMode = false;
 
-    Archive.create("test.db").then(archive => {
+    Archive.create(dbFilename).then(archive => {
+      this.archive = archive;
       const handlers = {};
       Object.keys(protocols).forEach(scheme => {
         handlers[scheme] = new protocols[scheme]();
@@ -101,7 +106,7 @@ export default class App extends EventEmitter {
     this.tabs.push(tab);
     this.activeTab = tab;
     tab.on(TAB_UPDATE, this.handleTabUpdate);
-    tab.loadURL("http://vcap.me");
+    tab.loadURL(initialUrl);
     this.updateActiveTab();
     this.sendChromeMessage(TAB_UPDATE, tab.toJSON());
   }

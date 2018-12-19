@@ -29,7 +29,16 @@ CREATE TABLE responses (
   headers TEXT NOT NULL,
   body BLOB,
   FOREIGN KEY ( requestId ) REFERENCES requests ( id )
-);`;
+);
+CREATE TABLE pages (
+  id INTEGER PRIMARY KEY,
+  url TEXT NOT NULL,
+  originalUrl TEXT NULL,
+  title TEXT NOT NULL,
+  UNIQUE ( url )
+);
+CREATE INDEX pages_url ON pages ( url );
+`;
 
 type Migration = {
   id: number,

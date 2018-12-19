@@ -28,9 +28,7 @@ export default class BrowserControls extends React.Component<Props> {
     if (inputEl) {
       const typedUrl = inputEl.value;
       const parsedUrl = parseUrl(typedUrl);
-      if (typedUrl !== parsedUrl) {
-        inputEl.value = parsedUrl;
-      }
+      inputEl.value = this.props.url;
       if (this.props.onChangeUrl) {
         this.props.onChangeUrl(parsedUrl);
       }
