@@ -8,6 +8,7 @@ import {
   type ChromeMessageData,
   CHROME_READY,
   CHROME_RESIZE,
+  NETWORK_MODE,
   TAB_UPDATE,
   TAB_FOCUS,
   TAB_NAVIGATE,
@@ -18,7 +19,12 @@ import BrowserControls from "./BrowserControls";
 
 import "./Chrome.css";
 
-export default class Chrome extends React.Component<{}> {
+type State = {
+  networkMode: "record" | "replay" | "passthrough",
+};
+
+export default class Chrome extends React.Component<{}, State> {
+  state = { networkMode: "replay" };
   tabs: Array<Tab> = [];
   activeTab: ?Tab;
 
@@ -43,11 +49,13 @@ export default class Chrome extends React.Component<{}> {
           loading={activeTab.loadFraction < 1}
           canNavigateBack={activeTab.canNavigateBack}
           canNavigateForward={activeTab.canNavigateForward}
+          networkMode={this.state.networkMode}
           onChangeUrl={this.handleChangeUrl}
           onNavigateBack={this.handleBack}
           onNavigateForward={this.handleForward}
           onRefresh={this.handleRefresh}
           onStop={this.handleStop}
+          onChangeNetworkMode={this.handleRequestNetworkMode}
         />
         <TabBar>
           {this.tabs.map(tab => (
@@ -90,11 +98,17 @@ export default class Chrome extends React.Component<{}> {
     this.sendChromeMessage(TAB_NAVIGATE, { id: this.activeTab.id, stop: true });
   };
 
+  handleRequestNetworkMode = (mode: "record" | "replay" | "passthrough") => {
+    this.sendChromeMessage(NETWORK_MODE, { mode });
+  };
+
   handleChromeMessage = (event: string, data: ChromeMessageData) => {
     if (data.type === TAB_UPDATE) {
       this.handleTabUpdate(data.payload);
     } else if (data.type === TAB_FOCUS) {
       this.handleTabFocus(data.payload);
+    } else if (data.type === NETWORK_MODE) {
+      this.handleNetworkMode(data.payload);
     }
   };
 
@@ -111,5 +125,9 @@ export default class Chrome extends React.Component<{}> {
   handleTabFocus(data: any) {
     this.activeTab = this.tabs.find(t => data.id === t.id);
     this.forceUpdate();
+  }
+
+  handleNetworkMode({ mode }: any) {
+    this.setState({ networkMode: mode });
   }
 }

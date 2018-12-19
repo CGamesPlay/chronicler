@@ -3,30 +3,16 @@ import * as fs from "fs";
 import StreamConcat from "stream-concat";
 import intoStream from "into-stream";
 
-import {
-  NetworkAdapter,
-  HttpProtocolHandler,
-  HttpsProtocolHandler,
-  NullPersister,
-} from "./network";
-
-const protocols = {
-  http: HttpProtocolHandler,
-  https: HttpsProtocolHandler,
-};
+import type { NetworkAdapter } from "./network";
 
 export default class ElectronProtocolHandler {
   session: any;
   networkAdapter: NetworkAdapter;
 
-  constructor(session: any) {
+  constructor(session: any, networkAdapter: NetworkAdapter) {
     this.session = session;
-    const handlers = {};
-    Object.keys(protocols).forEach(scheme => {
-      handlers[scheme] = new protocols[scheme]();
-    });
-    this.networkAdapter = new NetworkAdapter(handlers, new NullPersister());
-    Object.keys(protocols).forEach(scheme =>
+    this.networkAdapter = networkAdapter;
+    Object.keys(networkAdapter.handlers).forEach(scheme =>
       this.session.protocol.interceptStreamProtocol(
         scheme,
         this.handleStreamProtocol,

@@ -34,6 +34,13 @@ export default class NetworkAdapter {
     this.ready = Promise.resolve(undefined);
   }
 
+  isRecording(): boolean {
+    return this.mode === RECORD;
+  }
+  isReplaying(): boolean {
+    return this.mode === REPLAY;
+  }
+
   startRecordingSession(): Promise<void> {
     return (this.ready = this.ready.then(() => {
       if (this.mode === RECORD) {

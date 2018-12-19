@@ -9,12 +9,24 @@ import {
   type ChromeMessageData,
   CHROME_READY,
   CHROME_RESIZE,
+  NETWORK_MODE,
   TAB_UPDATE,
   TAB_FOCUS,
   TAB_NAVIGATE,
 } from "../common/events";
 import Tab from "./Tab";
 import ElectronProtocolHandler from "./ElectronProtocolHandler";
+import {
+  NetworkAdapter,
+  HttpProtocolHandler,
+  HttpsProtocolHandler,
+  NullPersister,
+} from "./network";
+
+const protocols = {
+  http: HttpProtocolHandler,
+  https: HttpsProtocolHandler,
+};
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -22,10 +34,12 @@ export default class App extends EventEmitter {
   id: string;
   chromeHeight: number;
   session: any;
+  networkAdapter: NetworkAdapter;
   protocolHandler: ElectronProtocolHandler;
   window: BrowserWindow;
   tabs: Array<Tab>;
   activeTab: ?Tab;
+  isChangingNetworkMode: boolean;
 
   constructor(id: string) {
     super();
@@ -35,9 +49,18 @@ export default class App extends EventEmitter {
       show: false,
     });
     this.tabs = [];
-
     this.session = session.fromPartition(this.id);
-    this.protocolHandler = new ElectronProtocolHandler(this.session);
+
+    const handlers = {};
+    Object.keys(protocols).forEach(scheme => {
+      handlers[scheme] = new protocols[scheme]();
+    });
+    this.networkAdapter = new NetworkAdapter(handlers, new NullPersister());
+    this.protocolHandler = new ElectronProtocolHandler(
+      this.session,
+      this.networkAdapter,
+    );
+    this.isChangingNetworkMode = false;
 
     this.window.loadURL("app://main/index.html");
 
@@ -85,6 +108,8 @@ export default class App extends EventEmitter {
           return this.handleChromeReady();
         case CHROME_RESIZE:
           return this.handleChromeResize(data.payload);
+        case NETWORK_MODE:
+          return this.handleRequestNetworkMode(data.payload);
         case TAB_UPDATE:
           return this.handleRequestTabUpdate(data.payload);
         case TAB_NAVIGATE:
@@ -111,6 +136,37 @@ export default class App extends EventEmitter {
         this.sendChromeMessage(TAB_FOCUS, { id: this.activeTab.id });
       }
     }
+    this.sendChromeMessage(NETWORK_MODE, {
+      mode: this.networkAdapter.isRecording()
+        ? "record"
+        : this.networkAdapter.isReplaying() ? "replay" : "passthrough",
+    });
+  }
+
+  handleRequestNetworkMode({ mode }: any) {
+    if (this.isChangingNetworkMode) return;
+    this.isChangingNetworkMode = true;
+    return Promise.resolve(undefined)
+      .then(() => {
+        if (mode !== "record" && this.networkAdapter.isRecording()) {
+          return this.networkAdapter.finishRecordingSession();
+        }
+      })
+      .then(() => {
+        switch (mode) {
+          case "record":
+            if (this.networkAdapter.isRecording()) return;
+            return this.networkAdapter.startRecordingSession();
+          case "replay":
+            return this.networkAdapter.setReplayMode();
+          case "passthrough":
+            return this.networkAdapter.setPassthroughMode();
+        }
+      })
+      .then(() => {
+        this.isChangingNetworkMode = false;
+        this.sendChromeMessage(NETWORK_MODE, { mode });
+      });
   }
 
   handleRequestTabUpdate(data: any) {

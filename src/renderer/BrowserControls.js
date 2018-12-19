@@ -3,16 +3,20 @@ import * as React from "react";
 
 import { parseUrl } from "./utils";
 
+type NetworkMode = "record" | "replay" | "passthrough";
+
 type Props = {
   url: string,
   loading: boolean,
   canNavigateBack: boolean,
   canNavigateForward: boolean,
+  networkMode: NetworkMode,
   onNavigateBack?: () => void,
   onNavigateForward?: () => void,
   onRefresh?: () => void,
   onStop?: () => void,
   onChangeUrl?: string => void,
+  onChangeNetworkMode?: NetworkMode => void,
 };
 
 export default class BrowserControls extends React.Component<Props> {
@@ -30,6 +34,19 @@ export default class BrowserControls extends React.Component<Props> {
       if (this.props.onChangeUrl) {
         this.props.onChangeUrl(parsedUrl);
       }
+    }
+  };
+
+  handleToggleNetworkMode = () => {
+    if (!this.props.onChangeNetworkMode) return;
+    switch (this.props.networkMode) {
+      case "record":
+      case "passthrough":
+        this.props.onChangeNetworkMode("replay");
+        return;
+      case "replay":
+        this.props.onChangeNetworkMode("record");
+        return;
     }
   };
 
@@ -74,7 +91,13 @@ export default class BrowserControls extends React.Component<Props> {
           </form>
         </div>
         <div className="control has-addons">
-          <button className="button">Offline</button>
+          <button className="button" onClick={this.handleToggleNetworkMode}>
+            {this.props.networkMode === "record"
+              ? "Recording"
+              : this.props.networkMode === "replay"
+                ? "Offline"
+                : "Not Recording"}
+          </button>
         </div>
       </div>
     );

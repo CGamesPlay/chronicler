@@ -9,6 +9,7 @@ export type ChromeMessageData = {
 
 export const CHROME_READY = "CHROME_READY";
 export const CHROME_RESIZE = "CHROME_RESIZE";
+export const NETWORK_MODE = "NETWORK_MODE";
 export const TAB_UPDATE = "TAB_UPDATE";
 export const TAB_FOCUS = "TAB_FOCUS";
 export const TAB_NAVIGATE = "TAB_NAVIGATE";
