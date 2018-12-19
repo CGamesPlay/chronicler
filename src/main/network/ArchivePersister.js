@@ -4,6 +4,7 @@ import { default as sqlite, type Database } from "sqlite";
 import { WritableStreamBuffer } from "stream-buffers";
 import intoStream from "into-stream";
 
+import type { Archive } from "../archive";
 import type {
   Request,
   SuccessResponse,
@@ -14,32 +15,23 @@ import type {
   IPersister,
 } from "./types";
 import { teeStream } from "./utils";
-import { MigrationManager } from "./sqlite/migrations";
-import {
-  insertRequest,
-  insertResponse,
-  deleteRequest,
-  findReplay,
-} from "./sqlite/queries";
 
-class SqliteRequestRecording implements IRequestRecording {
-  persister: SqlitePersister;
+class ArchiveRequestRecording implements IRequestRecording {
+  archive: Archive;
   requestId: Promise<number>;
 
-  constructor(persister: SqlitePersister, request: Request) {
-    this.persister = persister;
+  constructor(archive: Archive, request: Request) {
+    this.archive = archive;
     this.requestId = new Promise(resolve => {
       const recordRequest = body =>
-        this.persister.db
-          .run(
-            insertRequest(
-              request.url,
-              request.method,
-              JSON.stringify(request.headers),
-              body,
-            ),
-          )
-          .then(({ lastID }) => resolve(lastID));
+        this.archive
+          .insertRequest({
+            url: request.url,
+            method: request.method,
+            headers: request.headers,
+            body,
+          })
+          .then(resolve);
       if (request.uploadData) {
         const readable = request.uploadData;
         const bodyStream = new WritableStreamBuffer();
@@ -60,33 +52,31 @@ class SqliteRequestRecording implements IRequestRecording {
       streams[1].pipe(bodyStream);
 
       streams[1].once("end", () => {
-        this.persister.db.run(
-          insertResponse(
-            requestId,
-            response.data.statusCode,
-            JSON.stringify(response.data.headers),
-            bodyStream.getContents() || null,
-          ),
-        );
+        this.archive.insertResponse({
+          requestId,
+          statusCode: response.data.statusCode,
+          headers: response.data.headers,
+          body: bodyStream.getContents() || null,
+        });
       });
     });
   }
 
   abort(): Promise<void> {
     return this.requestId.then(requestId => {
-      this.persister.db.run(deleteRequest(requestId));
+      this.archive.deleteRequest(requestId);
     });
   }
 }
 
-class SqliteRecordingSession implements IRecordingSession {
-  persister: SqlitePersister;
+class ArchiveRecordingSession implements IRecordingSession {
+  archive: Archive;
 
-  constructor(persister: SqlitePersister) {
-    this.persister = persister;
+  constructor(archive: Archive) {
+    this.archive = archive;
   }
 
-  recordRequest(request: Request): Promise<SqlitePersister.RequestRecording> {
+  recordRequest(request: Request): Promise<ArchivePersister.RequestRecording> {
     let recordRequest = request;
     if (request.uploadData) {
       // If there's upload data, tee off the original stream so we can record
@@ -96,7 +86,7 @@ class SqliteRecordingSession implements IRecordingSession {
       recordRequest = { ...request, uploadData: streams[1] };
     }
     return Promise.resolve(
-      new SqliteRequestRecording(this.persister, recordRequest),
+      new ArchiveRequestRecording(this.archive, recordRequest),
     );
   }
 
@@ -105,39 +95,18 @@ class SqliteRecordingSession implements IRecordingSession {
   }
 }
 
-export default class SqlitePersister implements IPersister {
-  static RecordingSession = SqliteRecordingSession;
-  static RequestRecording = SqliteRequestRecording;
+export default class ArchivePersister implements IPersister {
+  static RecordingSession = ArchiveRecordingSession;
+  static RequestRecording = ArchiveRequestRecording;
 
-  static create(filename: string): Promise<SqlitePersister> {
-    return sqlite
-      .open(filename)
-      .then(database => MigrationManager.forDatabase(database))
-      .then(manager => {
-        if (!manager.isCompatible()) {
-          throw new Error(
-            "Database is incompatible with this version of the program",
-          );
-        } else if (manager.needsMigrations()) {
-          // XXX - ask the user before migrating
-          return manager.migrate();
-        } else {
-          return manager;
-        }
-      })
-      .then(manager => new SqlitePersister(filename, manager.db));
+  archive: Archive;
+
+  constructor(archive: Archive) {
+    this.archive = archive;
   }
 
-  filename: string;
-  db: Database;
-
-  constructor(filename: string, db: Database) {
-    this.filename = filename;
-    this.db = db;
-  }
-
-  createRecordingSession(): Promise<SqlitePersister.RecordingSession> {
-    return Promise.resolve(new SqliteRecordingSession(this));
+  createRecordingSession(): Promise<ArchivePersister.RecordingSession> {
+    return Promise.resolve(new ArchiveRecordingSession(this.archive));
   }
 
   replayRequest(request: Request): Promise<Response> {
@@ -148,15 +117,18 @@ export default class SqlitePersister implements IPersister {
         this.formatError("Cannot replay requests with uploads"),
       );
     }
-    return this.db
-      .get(findReplay(request.url, request.method))
+    return this.archive
+      .findReplay(request.url, request.method)
       .then(response => {
         if (!response) return this.formatError("Not found");
         const { statusCode, responseHeaders, responseBody } = response;
+        if (statusCode == null || !responseHeaders) {
+          return this.formatError("Not found");
+        }
         return {
           data: {
             statusCode,
-            headers: JSON.parse(responseHeaders),
+            headers: responseHeaders,
             data: intoStream(responseBody || []),
           },
         };

@@ -20,8 +20,9 @@ import {
   NetworkAdapter,
   HttpProtocolHandler,
   HttpsProtocolHandler,
-  SqlitePersister,
+  ArchivePersister,
 } from "./network";
+import { Archive } from "./archive";
 
 const protocols = {
   http: HttpProtocolHandler,
@@ -49,11 +50,12 @@ export default class App extends EventEmitter {
     this.session = session.fromPartition(this.id);
     this.isChangingNetworkMode = false;
 
-    SqlitePersister.create("test.db").then(persister => {
+    Archive.create("test.db").then(archive => {
       const handlers = {};
       Object.keys(protocols).forEach(scheme => {
         handlers[scheme] = new protocols[scheme]();
       });
+      const persister = new ArchivePersister(archive);
       this.networkAdapter = new NetworkAdapter(handlers, persister);
       this.protocolHandler = new ElectronProtocolHandler(
         this.session,
