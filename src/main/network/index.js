@@ -6,3 +6,4 @@ export {
   HttpsProtocolHandler,
 } from "./HttpProtocolHandler";
 export { default as NullPersister } from "./NullPersister";
+export { default as SqlitePersister } from "./SqlitePersister";

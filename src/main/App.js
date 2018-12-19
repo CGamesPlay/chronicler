@@ -20,7 +20,7 @@ import {
   NetworkAdapter,
   HttpProtocolHandler,
   HttpsProtocolHandler,
-  NullPersister,
+  SqlitePersister,
 } from "./network";
 
 const protocols = {
@@ -36,48 +36,51 @@ export default class App extends EventEmitter {
   session: any;
   networkAdapter: NetworkAdapter;
   protocolHandler: ElectronProtocolHandler;
-  window: BrowserWindow;
   tabs: Array<Tab>;
   activeTab: ?Tab;
   isChangingNetworkMode: boolean;
+  window: BrowserWindow;
 
   constructor(id: string) {
     super();
     this.id = id;
     this.chromeHeight = 20;
-    this.window = new BrowserWindow({
-      show: false,
-    });
     this.tabs = [];
     this.session = session.fromPartition(this.id);
-
-    const handlers = {};
-    Object.keys(protocols).forEach(scheme => {
-      handlers[scheme] = new protocols[scheme]();
-    });
-    this.networkAdapter = new NetworkAdapter(handlers, new NullPersister());
-    this.protocolHandler = new ElectronProtocolHandler(
-      this.session,
-      this.networkAdapter,
-    );
     this.isChangingNetworkMode = false;
 
-    this.window.loadURL("app://main/index.html");
-
-    this.window.on("closed", () => {
-      this.window = null;
-      this.close();
-      this.emit("closed");
-    });
-
-    this.window.webContents.on("devtools-opened", () => {
-      this.window.focus();
-      setImmediate(() => {
-        this.window.focus();
+    SqlitePersister.create("test.db").then(persister => {
+      const handlers = {};
+      Object.keys(protocols).forEach(scheme => {
+        handlers[scheme] = new protocols[scheme]();
       });
-    });
+      this.networkAdapter = new NetworkAdapter(handlers, persister);
+      this.protocolHandler = new ElectronProtocolHandler(
+        this.session,
+        this.networkAdapter,
+      );
 
-    ipcMain.on(CHROME_MESSAGE, this.handleChromeMessage);
+      this.window = new BrowserWindow({
+        show: false,
+      });
+
+      this.window.on("closed", () => {
+        this.window = null;
+        this.close();
+        this.emit("closed");
+      });
+
+      this.window.webContents.on("devtools-opened", () => {
+        this.window.focus();
+        setImmediate(() => {
+          this.window.focus();
+        });
+      });
+
+      ipcMain.on(CHROME_MESSAGE, this.handleChromeMessage);
+
+      this.window.loadURL("app://main/index.html");
+    });
   }
 
   close() {

@@ -133,7 +133,7 @@ export default class NetworkAdapter {
         },
         data: intoStream(
           `<html><body>Failed.<pre>${JSON.stringify(response)}\n${
-            error ? error.toString() : ""
+            error ? error.stack : ""
           }</pre></body></html>`,
         ),
       },

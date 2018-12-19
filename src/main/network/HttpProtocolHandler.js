@@ -16,7 +16,7 @@ const makeHttpHandler = <Scheme: typeof http | typeof https>(scheme: Scheme) =>
           res => {
             resolve({
               data: {
-                statusCode: res.statusCode,
+                statusCode: parseInt(res.statusCode, 10),
                 headers: res.headers,
                 data: res,
               },
