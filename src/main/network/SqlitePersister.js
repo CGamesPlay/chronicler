@@ -152,13 +152,12 @@ export default class SqlitePersister implements IPersister {
       .get(findReplay(request.url, request.method))
       .then(response => {
         if (!response) return this.formatError("Not found");
-        console.log(response);
         const { statusCode, responseHeaders, responseBody } = response;
         return {
           data: {
             statusCode,
             headers: JSON.parse(responseHeaders),
-            data: intoStream(responseBody),
+            data: intoStream(responseBody || []),
           },
         };
       });
