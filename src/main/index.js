@@ -1,9 +1,9 @@
 "use strict";
 
-import { app, BrowserWindow } from "electron";
+import { app, protocol, BrowserWindow } from "electron";
 
 import App from "./app";
-import registerProtocols from "./protocols";
+import registerAppProtocol from "./registerAppProtocol";
 
 // global reference to mainApp (necessary to prevent window from being
 // garbage collected)
@@ -35,6 +35,6 @@ app.on("activate", () => {
 
 // create main BrowserWindow when electron is ready
 app.on("ready", () => {
-  registerProtocols();
+  registerAppProtocol(protocol);
   createMainApp();
 });

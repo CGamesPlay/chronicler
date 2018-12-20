@@ -5,6 +5,7 @@ import intoStream from "into-stream";
 
 import { ERR_FAILED } from "../common/errors";
 import type { NetworkAdapter } from "./network";
+import registerAppProtocol from "./registerAppProtocol";
 
 export default class ElectronRequestConnector {
   session: any;
@@ -19,6 +20,7 @@ export default class ElectronRequestConnector {
         this.handleStreamProtocol,
       ),
     );
+    registerAppProtocol(this.session.protocol);
   }
 
   handleStreamProtocol = (electronRequest: any, callback: any => void) => {
