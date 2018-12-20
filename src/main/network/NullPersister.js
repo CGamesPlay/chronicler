@@ -1,8 +1,7 @@
 // @flow
 import type {
   Request,
-  SuccessResponse,
-  FailureResponse,
+  Response,
   IRequestRecording,
   IRecordingSession,
   IPersister,
@@ -21,14 +20,14 @@ class NullRequestRecording implements IRequestRecording {
     }
   }
 
-  finalize(response: SuccessResponse): Promise<void> {
-    console.log(response.data.statusCode);
-    Object.keys(response.data.headers).forEach(key => {
-      console.log(`${key}: ${response.data.headers[key]}`);
+  finalize(response: Response): Promise<void> {
+    console.log(response.statusCode);
+    Object.keys(response.headers).forEach(key => {
+      console.log(`${key}: ${response.headers[key]}`);
     });
     // Tee off the data stream so we can log it and download it.
-    const streams = teeStream(response.data.data);
-    response.data.data = streams[0];
+    const streams = teeStream(response.data);
+    response.data = streams[0];
     streams[1].pipe(process.stdout);
     return Promise.resolve(undefined);
   }
@@ -70,12 +69,7 @@ export default class NullPersister implements IPersister {
     return Promise.resolve(new NullRecordingSession());
   }
 
-  replayRequest(): Promise<FailureResponse> {
-    return Promise.resolve({
-      error: {
-        code: ("ENOENT": any),
-        debug: new Error("Not implemented").toString(),
-      },
-    });
+  replayRequest(): Promise<Response> {
+    return Promise.reject(new Error("Not implemented"));
   }
 }

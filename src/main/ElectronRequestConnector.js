@@ -3,9 +3,10 @@ import * as fs from "fs";
 import StreamConcat from "stream-concat";
 import intoStream from "into-stream";
 
+import { ERR_FAILED } from "../common/errors";
 import type { NetworkAdapter } from "./network";
 
-export default class ElectronProtocolHandler {
+export default class ElectronRequestConnector {
   session: any;
   networkAdapter: NetworkAdapter;
 
@@ -30,9 +31,13 @@ export default class ElectronProtocolHandler {
         const request = { ...electronRequest, headers, uploadData: stream };
         return this.networkAdapter.request(request);
       })
-      .then(({ data }) => {
-        callback(data);
-      });
+      .then(callback)
+      .catch(err =>
+        callback(
+          // Electron will straight-up crash if the error code is not a number
+          err.code && Number.isInteger(err.code) ? err.code : ERR_FAILED,
+        ),
+      );
   };
 
   prepareUploadData(

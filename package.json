@@ -28,6 +28,7 @@
     "electron-builder": "^20.36.2",
     "electron-webpack": "^2.6.1",
     "flow-bin": "^0.89.0",
+    "raw-loader": "^1.0.0",
     "webpack": "^4.26.0"
   }
 }

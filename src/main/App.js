@@ -15,7 +15,7 @@ import {
   TAB_NAVIGATE,
 } from "../common/events";
 import Tab from "./Tab";
-import ElectronProtocolHandler from "./ElectronProtocolHandler";
+import ElectronRequestConnector from "./ElectronRequestConnector";
 import {
   NetworkAdapter,
   HttpProtocolHandler,
@@ -29,10 +29,8 @@ const protocols = {
   https: HttpsProtocolHandler,
 };
 
-const isDevelopment = process.env.NODE_ENV !== "production";
-
 const dbFilename = "test.db";
-const initialUrl = "https://httpstat.us/";
+const initialUrl = "http://vcap.me/";
 
 export default class App extends EventEmitter {
   id: string;
@@ -40,7 +38,7 @@ export default class App extends EventEmitter {
   session: any;
   archive: Archive;
   networkAdapter: NetworkAdapter;
-  protocolHandler: ElectronProtocolHandler;
+  requestConnector: ElectronRequestConnector;
   tabs: Array<Tab>;
   activeTab: ?Tab;
   isChangingNetworkMode: boolean;
@@ -62,7 +60,7 @@ export default class App extends EventEmitter {
       });
       const persister = new ArchivePersister(archive);
       this.networkAdapter = new NetworkAdapter(handlers, persister);
-      this.protocolHandler = new ElectronProtocolHandler(
+      this.requestConnector = new ElectronRequestConnector(
         this.session,
         this.networkAdapter,
       );

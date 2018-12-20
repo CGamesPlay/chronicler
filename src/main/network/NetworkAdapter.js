@@ -1,10 +1,7 @@
 // @flow
-import intoStream from "into-stream";
-
 import type {
   Request,
   Response,
-  SuccessResponse,
   IProtocolHandler,
   IRecordingSession,
   IPersister,
@@ -86,57 +83,31 @@ export default class NetworkAdapter {
     }));
   }
 
-  request(request: Request): Promise<SuccessResponse> {
+  request(request: Request): Promise<Response> {
     const scheme = /^(\w+):\/\//.exec(request.url);
-    if (!scheme)
-      return Promise.resolve(
-        this.renderError(null, new Error("Malformed URL")),
-      );
+    if (!scheme) return Promise.reject(new Error("Malformed URL"));
     const handler = this.handlers[scheme[1]];
     if (!handler)
-      return Promise.resolve(
-        this.renderError(null, new Error(`Unknown protocol ${scheme[1]}`)),
-      );
-    return this.ready
-      .then(() => {
-        if (this.mode === RECORD) {
-          const session = this.session;
-          if (!session) throw new Error("No session while in record mode");
-          return session.recordRequest(request).then(recording =>
-            handler.request(request).then(response => {
-              if (response.data)
-                return recording.finalize((response: any)).then(() => response);
-              else return recording.abort().then(() => response);
-            }),
+      return Promise.reject(new Error(`Unknown protocol ${scheme[1]}`));
+    return this.ready.then(() => {
+      if (this.mode === RECORD) {
+        const session = this.session;
+        if (!session) throw new Error("No session while in record mode");
+        return session
+          .recordRequest(request)
+          .then(recording =>
+            handler
+              .request(request)
+              .then(
+                response => recording.finalize(response).then(() => response),
+                error => recording.abort().then(() => Promise.reject(error)),
+              ),
           );
-        } else if (this.mode === PASSTHROUGH) {
-          return handler.request(request);
-        } else {
-          return this.persister.replayRequest(request);
-        }
-      })
-      .then(
-        res => {
-          if (res.data) return (res: any);
-          return this.renderError(res);
-        },
-        err => this.renderError(null, err),
-      );
-  }
-
-  renderError(response: ?Response, error: ?Error): SuccessResponse {
-    return {
-      data: {
-        statusCode: 0,
-        headers: {
-          "Content-Type": "text/html",
-        },
-        data: intoStream(
-          `<html><body>Failed.<pre>${JSON.stringify(response)}\n${
-            error ? error.stack : ""
-          }</pre></body></html>`,
-        ),
-      },
-    };
+      } else if (this.mode === PASSTHROUGH) {
+        return handler.request(request);
+      } else {
+        return this.persister.replayRequest(request);
+      }
+    });
   }
 }

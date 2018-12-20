@@ -11,24 +11,11 @@ export type Request = {
 // Indicates that the implementation reached the remote server and received a
 // response, even if that response was some sort of failure (e.g. 404). This
 // will be saved into the archive and replayed in the future.
-export type SuccessResponse = {
-  data: {
-    statusCode: number,
-    headers: { [string]: string },
-    data: Readable,
-  },
+export type Response = {
+  statusCode: number,
+  headers: { [string]: string },
+  data: Readable,
 };
-
-// Indicates that the implementation could not reach the remote server. This
-// will not be saved into the archive.
-export type FailureResponse = {
-  error: {
-    code: number,
-    debug?: string,
-  },
-};
-
-export type Response = SuccessResponse | FailureResponse;
 
 // Responsible for taking a request for a URL, processing it, and returning the
 // result. This should be where http, https, ipfs, dat, etc are all implemented.
@@ -40,7 +27,7 @@ export interface IProtocolHandler {
 // Represents a single HTTP request for a persister.
 export interface IRequestRecording {
   // Record the response
-  finalize(SuccessResponse): Promise<void>;
+  finalize(Response): Promise<void>;
   // Abort the recording. In this case, nothing should be recorded at all.
   abort(): Promise<void>;
 }

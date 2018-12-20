@@ -5,6 +5,9 @@ import EventEmitter from "events";
 import { TAB_UPDATE } from "../common/events";
 import type App from "./App";
 import { Archive } from "./archive";
+import errorPage from "./errorPage";
+
+const chromeErrorUrl = "chrome-error://chromewebdata/";
 
 // Keeps track of URL and title changes in the context of a single navigation.
 class PageTracker {
@@ -73,6 +76,7 @@ export default class Tab extends EventEmitter {
 
     this.view.webContents.on("did-start-loading", this.handleStartLoading);
     this.view.webContents.on("did-stop-loading", this.handleStopLoading);
+    this.view.webContents.on("did-fail-load", this.handleLoadFailure);
     this.view.webContents.on("dom-ready", this.handleDomReady);
     this.view.webContents.on("page-title-updated", this.handleTitleUpdated);
     this.view.webContents.on("did-navigate", this.handleNavigation);
@@ -172,5 +176,28 @@ export default class Tab extends EventEmitter {
         this.view.webContents.getTitle(),
       );
     }
+  };
+
+  handleLoadFailure = (
+    event: any,
+    code: number,
+    error: string,
+    url: string,
+  ) => {
+    event.sender.executeJavaScript("window.location.href").then(location => {
+      if (location !== chromeErrorUrl) return;
+      this.activePage = null;
+      const { css, title, html } = errorPage(code, error, url);
+      event.sender.insertCSS(css);
+      event.sender
+        .executeJavaScript(
+          `document.title = ${JSON.stringify(title)};
+      document.body.innerHTML = ${JSON.stringify(html)};
+      new Promise(function(resolve) { window.resolveError = resolve; });`,
+        )
+        .then(ret => {
+          event.sender.reload();
+        });
+    });
   };
 }

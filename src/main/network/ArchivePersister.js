@@ -7,8 +7,6 @@ import intoStream from "into-stream";
 import type { Archive } from "../archive";
 import type {
   Request,
-  SuccessResponse,
-  FailureResponse,
   Response,
   IRequestRecording,
   IRecordingSession,
@@ -43,19 +41,19 @@ class ArchiveRequestRecording implements IRequestRecording {
     });
   }
 
-  finalize(response: SuccessResponse): Promise<void> {
+  finalize(response: Response): Promise<void> {
     return this.requestId.then(requestId => {
       const bodyStream = new WritableStreamBuffer();
       // Tee off the data stream so we can log it and download it.
-      const streams = teeStream(response.data.data);
-      response.data.data = streams[0];
+      const streams = teeStream(response.data);
+      response.data = streams[0];
       streams[1].pipe(bodyStream);
 
       streams[1].once("end", () => {
         this.archive.insertResponse({
           requestId,
-          statusCode: response.data.statusCode,
-          headers: response.data.headers,
+          statusCode: response.statusCode,
+          headers: response.headers,
           body: bodyStream.getContents() || null,
         });
       });
@@ -111,31 +109,23 @@ export default class ArchivePersister implements IPersister {
 
   replayRequest(request: Request): Promise<Response> {
     if (request.method !== "GET") {
-      return Promise.resolve(this.formatError("Only GET requests supported"));
+      return Promise.reject(new Error("Only GET requests supported"));
     } else if (request.uploadData) {
-      return Promise.resolve(
-        this.formatError("Cannot replay requests with uploads"),
-      );
+      return Promise.reject(new Error("Cannot replay requests with uploads"));
     }
     return this.archive
       .findReplay(request.url, request.method)
       .then(response => {
-        if (!response) return this.formatError("Not found");
+        if (!response) throw new Error("Not found");
         const { statusCode, responseHeaders, responseBody } = response;
         if (statusCode == null || !responseHeaders) {
-          return this.formatError("Not found");
+          throw new Error("Not found");
         }
         return {
-          data: {
-            statusCode,
-            headers: responseHeaders,
-            data: intoStream(responseBody || []),
-          },
+          statusCode,
+          headers: responseHeaders,
+          data: intoStream(responseBody || []),
         };
       });
-  }
-
-  formatError(message: string): FailureResponse {
-    return { error: { code: -1, debug: message } };
   }
 }
