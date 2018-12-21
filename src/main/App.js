@@ -14,7 +14,7 @@ import {
   TAB_FOCUS,
   TAB_NAVIGATE,
 } from "common/events";
-import { chromeUrl } from "common/urls";
+import { chromeUrl, contentRoot } from "common/urls";
 import Tab from "./Tab";
 import ElectronRequestConnector from "./ElectronRequestConnector";
 import {
@@ -31,7 +31,7 @@ const protocols = {
 };
 
 const dbFilename = "test.db";
-const initialUrl = "http://vcap.me/";
+const initialUrl = `${contentRoot}/foobar`;
 
 export default class App extends EventEmitter {
   id: string;

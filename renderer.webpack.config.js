@@ -7,4 +7,9 @@ module.exports = {
     // This fixes the problem of relative asset paths in the HTML
     publicPath: "/",
   },
+  devServer: {
+    historyApiFallback: {
+      rewrites: [{ from: /^\/html\/.*/, to: "/index.html" }],
+    },
+  },
 };

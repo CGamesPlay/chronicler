@@ -29,7 +29,7 @@ export default function registerAppProtocol(protocol: typeof electronProtocol) {
         url: redirectUrl,
         // We force all app requests to use the global default session, to
         // bypass the Archive when showing internal pages.
-        session: session.fromPartition(""),
+        session: session.defaultSession,
       };
       callback(redirect);
     });

@@ -11,4 +11,6 @@ import Chrome from "./Chrome";
 // bother with a dynamic router at this level.
 if (window.location.href === urls.chromeUrl) {
   ReactDOM.render(<Chrome />, document.getElementById("app"));
+} else {
+  ReactDOM.render(<div>Hello, world 12!</div>, document.getElementById("app"));
 }
