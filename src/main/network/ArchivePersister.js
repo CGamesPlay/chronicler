@@ -4,6 +4,7 @@ import { default as sqlite, type Database } from "sqlite";
 import { WritableStreamBuffer } from "stream-buffers";
 import intoStream from "into-stream";
 
+import { ERR_NETWORK_IO_SUSPENDED } from "common/errors";
 import type { Archive } from "../archive";
 import type {
   Request,
@@ -116,10 +117,10 @@ export default class ArchivePersister implements IPersister {
     return this.archive
       .findReplay(request.url, request.method)
       .then(response => {
-        if (!response) throw new Error("Not found");
+        if (!response) throw this.error("Not found", ERR_NETWORK_IO_SUSPENDED);
         const { statusCode, responseHeaders, responseBody } = response;
         if (statusCode == null || !responseHeaders) {
-          throw new Error("Not found");
+          throw this.error("Not found", ERR_NETWORK_IO_SUSPENDED);
         }
         return {
           statusCode,
@@ -127,5 +128,11 @@ export default class ArchivePersister implements IPersister {
           data: intoStream(responseBody || []),
         };
       });
+  }
+
+  error(message: string, code: number) {
+    const error = new Error(message);
+    (error: any).code = code;
+    return error;
   }
 }

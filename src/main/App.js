@@ -69,6 +69,8 @@ export default class App extends EventEmitter {
       this.window = new BrowserWindow({
         title: appName,
         show: false,
+        width: 1200,
+        height: 900,
       });
 
       this.window.on("closed", () => {
@@ -205,9 +207,12 @@ export default class App extends EventEmitter {
     this.sendChromeMessage(TAB_UPDATE, data);
   };
 
-  handleContentIpc = (message: any) => {
-    console.log("IPC message", message);
-    return message;
+  handleContentIpc = (message: any): Promise<any> => {
+    if (message.query === "getPages") {
+      return this.archive.getPages();
+    } else {
+      return Promise.reject("unknown query " + message.query);
+    }
   };
 
   updateActiveTab() {

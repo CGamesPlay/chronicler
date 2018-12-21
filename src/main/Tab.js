@@ -72,6 +72,7 @@ export default class Tab extends EventEmitter {
     this.view = new BrowserView({
       webPreferences: {
         nodeIntegration: false,
+        enableRemoteModule: false,
         sandbox: true,
         session: this.app.session,
         affinity: this.app.id,
@@ -100,7 +101,7 @@ export default class Tab extends EventEmitter {
   }
 
   openDevTools() {
-    this.view.webContents.openDevTools();
+    this.view.webContents.openDevTools({ mode: "bottom" });
   }
 
   requestUpdate(data: any) {
@@ -195,19 +196,25 @@ export default class Tab extends EventEmitter {
     error: string,
     url: string,
   ) => {
-    if (event.sender.getURL() !== chromeErrorUrl) return;
-    this.activePage = null;
-    const { css, title, html } = errorPage(code, error, url);
-    event.sender.insertCSS(css);
-    event.sender
-      .executeJavaScript(
-        `document.title = ${JSON.stringify(title)};
-        document.body.innerHTML = ${JSON.stringify(html)};
-        new Promise(function(resolve) { window.resolveError = resolve; });`,
-      )
-      .then(ret => {
-        event.sender.reload();
-      });
+    event.sender.executeJavaScript("window.location.href").then(location => {
+      if (location !== chromeErrorUrl) return;
+      this.activePage = null;
+      const { css, title, html } = errorPage(code, error, url);
+      event.sender.insertCSS(css);
+      event.sender
+        .executeJavaScript(
+          `document.title = ${JSON.stringify(title)};
+          document.body.innerHTML = ${JSON.stringify(html)};
+          new Promise(function(resolve) { window.resolveError = resolve; });`,
+        )
+        .then(ret => {
+          if (ret === "start-recording") {
+            this.app.handleRequestNetworkMode({ mode: "record" });
+          } else {
+            event.sender.reload();
+          }
+        });
+    });
   };
 
   installIpcServer(webContents: any) {

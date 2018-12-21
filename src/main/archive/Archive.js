@@ -107,6 +107,10 @@ export default class Archive {
     return this.db.run(SQL`UPDATE pages SET title = ${title} WHERE id = ${id}`);
   }
 
+  getPages(): Promise<Page> {
+    return this.db.all(SQL`SELECT * FROM pages ORDER BY id DESC`);
+  }
+
   findReplay(url: string, method: string): Promise<?Replay> {
     return this.findReplayDirect(url, method).then(replay => {
       if (replay) return replay;
