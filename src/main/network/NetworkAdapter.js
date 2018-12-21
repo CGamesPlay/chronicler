@@ -7,6 +7,8 @@ import type {
   IPersister,
 } from "./types";
 
+const isDevelopment = process.env.NODE_ENV !== "production";
+
 const RECORD = "RECORD";
 const REPLAY = "REPLAY";
 const PASSTHROUGH = "PASSTHROUGH";
@@ -90,7 +92,9 @@ export default class NetworkAdapter {
     if (!handler)
       return Promise.reject(new Error(`Unknown protocol ${scheme[1]}`));
     return this.ready.then(() => {
-      if (this.mode === RECORD) {
+      if (this.mode === PASSTHROUGH || this.urlBypassesPersister(request.url)) {
+        return handler.request(request);
+      } else if (this.mode === RECORD) {
         const session = this.session;
         if (!session) throw new Error("No session while in record mode");
         return session
@@ -103,11 +107,20 @@ export default class NetworkAdapter {
                 error => recording.abort().then(() => Promise.reject(error)),
               ),
           );
-      } else if (this.mode === PASSTHROUGH) {
-        return handler.request(request);
       } else {
         return this.persister.replayRequest(request);
       }
     });
+  }
+
+  // If this method returns true, the given request will always be treated as
+  // though the adapter were in passthrough mode.
+  urlBypassesPersister(url: string): boolean {
+    if (isDevelopment) {
+      const port = process.env.ELECTRON_WEBPACK_WDS_PORT || "9800";
+      const wdsPrefix = `http://localhost:${port}/`;
+      if (url.startsWith(wdsPrefix)) return true;
+    }
+    return false;
   }
 }

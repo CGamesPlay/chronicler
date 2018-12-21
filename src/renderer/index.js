@@ -3,6 +3,12 @@ import ReactDOM from "react-dom";
 
 import "bulma/css/bulma.css";
 
+import * as urls from "common/urls";
+
 import Chrome from "./Chrome";
 
-ReactDOM.render(<Chrome />, document.getElementById("app"));
+// We treat each of these as a completely separate application, so we don't
+// bother with a dynamic router at this level.
+if (window.location.href === urls.chromeUrl) {
+  ReactDOM.render(<Chrome />, document.getElementById("app"));
+}

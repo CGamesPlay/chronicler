@@ -8,6 +8,11 @@
     "dist": "yarn compile && electron-builder",
     "dist:dir": "yarn dist --dir -c.compression=store -c.mac.identity=null"
   },
+  "electronWebpack": {
+    "renderer": {
+      "webpackConfig": "renderer.webpack.config.js"
+    }
+  },
   "dependencies": {
     "bulma": "^0.7.2",
     "classnames": "^2.2.6",

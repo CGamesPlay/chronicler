@@ -9,9 +9,11 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 electronProtocol.registerStandardSchemes(["app"], { secure: true });
 
 const prefix = "app://main/";
-// Strip off the known URL prefix or reject the URL.
+const htmlPrefix = prefix + "html/";
+// Convert an app URL to one relative to the webpack root, or reject it.
 const routeUrl = (url: string): ?string => {
   if (!url.startsWith(prefix)) return null;
+  if (url.startsWith(htmlPrefix)) return "index.html";
   return url.substr(prefix.length);
 };
 
@@ -25,8 +27,8 @@ export default function registerAppProtocol(protocol: typeof electronProtocol) {
       const redirect = {
         ...request,
         url: redirectUrl,
-        // We force all app requests to use the global default session, so
-        // that individual tabs don't serve app requests through the Archive.
+        // We force all app requests to use the global default session, to
+        // bypass the Archive when showing internal pages.
         session: session.fromPartition(""),
       };
       callback(redirect);

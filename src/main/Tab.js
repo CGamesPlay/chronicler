@@ -1,11 +1,14 @@
 // @flow
 import { BrowserView } from "electron";
 import EventEmitter from "events";
+import * as path from "path";
 
 import { TAB_UPDATE } from "../common/events";
 import type App from "./App";
 import { Archive } from "./archive";
 import errorPage from "./errorPage";
+
+declare var __static: string;
 
 const chromeErrorUrl = "chrome-error://chromewebdata/";
 
@@ -70,6 +73,7 @@ export default class Tab extends EventEmitter {
         affinity: this.app.id,
         scrollBounce: true,
         backgroundThrottling: true,
+        preload: path.join(__static, "preload.js"),
       },
     });
     this.view.setAutoResize({ width: true, height: true });

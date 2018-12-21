@@ -13,7 +13,8 @@ import {
   TAB_UPDATE,
   TAB_FOCUS,
   TAB_NAVIGATE,
-} from "../common/events";
+} from "common/events";
+import { chromeUrl } from "common/urls";
 import Tab from "./Tab";
 import ElectronRequestConnector from "./ElectronRequestConnector";
 import {
@@ -84,7 +85,7 @@ export default class App extends EventEmitter {
 
       ipcMain.on(CHROME_MESSAGE, this.handleChromeMessage);
 
-      this.window.loadURL("app://main/index.html");
+      this.window.loadURL(chromeUrl);
     });
   }
 
