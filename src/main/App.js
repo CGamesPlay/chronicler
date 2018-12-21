@@ -14,7 +14,8 @@ import {
   TAB_FOCUS,
   TAB_NAVIGATE,
 } from "common/events";
-import { chromeUrl, contentRoot } from "common/urls";
+import { chromeUrl, newTabUrl } from "common/urls";
+import { appName } from "common/config";
 import Tab from "./Tab";
 import ElectronRequestConnector from "./ElectronRequestConnector";
 import {
@@ -31,7 +32,6 @@ const protocols = {
 };
 
 const dbFilename = "test.db";
-const initialUrl = `${contentRoot}/foobar`;
 
 export default class App extends EventEmitter {
   id: string;
@@ -67,6 +67,7 @@ export default class App extends EventEmitter {
       );
 
       this.window = new BrowserWindow({
+        title: appName,
         show: false,
       });
 
@@ -105,7 +106,7 @@ export default class App extends EventEmitter {
     this.tabs.push(tab);
     this.activeTab = tab;
     tab.on(TAB_UPDATE, this.handleTabUpdate);
-    tab.loadURL(initialUrl);
+    tab.loadURL(newTabUrl);
     this.updateActiveTab();
     this.sendChromeMessage(TAB_UPDATE, tab.toJSON());
   }
