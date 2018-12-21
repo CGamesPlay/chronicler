@@ -3,12 +3,15 @@ import { BrowserView } from "electron";
 import EventEmitter from "events";
 import * as path from "path";
 
-import { TAB_UPDATE } from "../common/events";
+import { TAB_UPDATE } from "common/events";
+import { contentRoot } from "common/urls";
 import type App from "./App";
 import { Archive } from "./archive";
 import errorPage from "./errorPage";
 
 declare var __static: string;
+
+type IpcHandler = (message: any) => Promise<any>;
 
 const chromeErrorUrl = "chrome-error://chromewebdata/";
 
@@ -59,6 +62,7 @@ export default class Tab extends EventEmitter {
   id: string;
   view: BrowserView;
   activePage: ?PageTracker;
+  ipcHandler: ?IpcHandler;
 
   constructor(app: App, id: string) {
     super();
@@ -121,6 +125,10 @@ export default class Tab extends EventEmitter {
     this.view.webContents.stop();
   }
 
+  setIpcHandler(ipcHandler: ?IpcHandler) {
+    this.ipcHandler = ipcHandler;
+  }
+
   toJSON() {
     const webContents = this.view.webContents;
     const loadFraction = !webContents.isLoadingMainFrame()
@@ -144,18 +152,21 @@ export default class Tab extends EventEmitter {
     this.emit(TAB_UPDATE, this.toJSON());
   };
 
-  handleDomReady = () => {
+  handleDomReady = (event: any) => {
     this.emit(TAB_UPDATE, this.toJSON());
+    if (event.sender.getURL().startsWith(contentRoot)) {
+      this.installIpcServer(event.sender);
+    }
   };
 
-  handleTitleUpdated = (_event: string, title: string) => {
+  handleTitleUpdated = (_event: any, title: string) => {
     this.emit(TAB_UPDATE, this.toJSON());
     if (this.app.networkAdapter.isRecording() && this.activePage) {
       this.activePage.trackTitleChange(title);
     }
   };
 
-  handleNavigation = (_event: string, url: string, statusCode: number) => {
+  handleNavigation = (_event: any, url: string, statusCode: number) => {
     if (this.app.networkAdapter.isRecording() && statusCode > 0) {
       this.activePage = new PageTracker(
         this.app.archive,
@@ -165,11 +176,7 @@ export default class Tab extends EventEmitter {
     }
   };
 
-  handleInPageNavigation = (
-    _event: string,
-    url: string,
-    isMainFrame: boolean,
-  ) => {
+  handleInPageNavigation = (_event: any, url: string, isMainFrame: boolean) => {
     if (
       this.app.networkAdapter.isRecording() &&
       isMainFrame &&
@@ -188,20 +195,39 @@ export default class Tab extends EventEmitter {
     error: string,
     url: string,
   ) => {
-    event.sender.executeJavaScript("window.location.href").then(location => {
-      if (location !== chromeErrorUrl) return;
-      this.activePage = null;
-      const { css, title, html } = errorPage(code, error, url);
-      event.sender.insertCSS(css);
-      event.sender
-        .executeJavaScript(
-          `document.title = ${JSON.stringify(title)};
-      document.body.innerHTML = ${JSON.stringify(html)};
-      new Promise(function(resolve) { window.resolveError = resolve; });`,
-        )
-        .then(ret => {
-          event.sender.reload();
-        });
-    });
+    if (event.sender.getURL() !== chromeErrorUrl) return;
+    this.activePage = null;
+    const { css, title, html } = errorPage(code, error, url);
+    event.sender.insertCSS(css);
+    event.sender
+      .executeJavaScript(
+        `document.title = ${JSON.stringify(title)};
+        document.body.innerHTML = ${JSON.stringify(html)};
+        new Promise(function(resolve) { window.resolveError = resolve; });`,
+      )
+      .then(ret => {
+        event.sender.reload();
+      });
   };
+
+  installIpcServer(webContents: any) {
+    const advanceQueue = (arg: any) =>
+      webContents.executeJavaScript(
+        `(window.ipcClient && window.ipcClient.advanceQueue) ? window.ipcClient.advanceQueue(${JSON.stringify(
+          arg,
+        )}) : null`,
+      );
+    const handleIpcRequest = (request: any) => {
+      // On null request, shut down the channel.
+      if (request === null) return;
+      Promise.resolve(null)
+        .then(() => {
+          if (!this.ipcHandler) return Promise.reject("no IPC handler");
+          return this.ipcHandler(request);
+        })
+        .then(data => advanceQueue({ data }), error => advanceQueue({ error }))
+        .then(handleIpcRequest);
+    };
+    advanceQueue(null).then(handleIpcRequest);
+  }
 }

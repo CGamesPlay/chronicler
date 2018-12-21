@@ -107,6 +107,7 @@ export default class App extends EventEmitter {
     this.activeTab = tab;
     tab.on(TAB_UPDATE, this.handleTabUpdate);
     tab.loadURL(newTabUrl);
+    tab.setIpcHandler(this.handleContentIpc);
     this.updateActiveTab();
     this.sendChromeMessage(TAB_UPDATE, tab.toJSON());
   }
@@ -202,6 +203,11 @@ export default class App extends EventEmitter {
 
   handleTabUpdate = (data: any) => {
     this.sendChromeMessage(TAB_UPDATE, data);
+  };
+
+  handleContentIpc = (message: any) => {
+    console.log("IPC message", message);
+    return message;
   };
 
   updateActiveTab() {
