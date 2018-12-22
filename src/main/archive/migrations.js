@@ -1,89 +1,105 @@
 // @flow
-import SQL from "sql-template-strings";
-import type { Database } from "sqlite";
+import type { Knex } from "knex";
 
-const createMigrationTable = `
-CREATE TABLE IF NOT EXISTS migrations (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL
-)`;
-
-const readMigrations = SQL`SELECT id, name FROM migrations ORDER BY id`;
-
-const insertMigration = (id: number, name: string) =>
-  SQL`INSERT INTO migrations (id, name) VALUES (${id}, ${name})`;
-
-const initialMigration = `
-CREATE TABLE requests (
-  id INTEGER PRIMARY KEY,
-  url TEXT NOT NULL,
-  method TEXT NOT NULL,
-  headers TEXT NOT NULL,
-  body BLOB
-);
-CREATE INDEX requests_url_method ON requests ( url, method );
-CREATE TABLE responses (
-  id INTEGER PRIMARY KEY,
-  requestId INTEGER NOT NULL UNIQUE,
-  statusCode INTEGER NOT NULL,
-  headers TEXT NOT NULL,
-  body BLOB,
-  FOREIGN KEY ( requestId ) REFERENCES requests ( id )
-);
-CREATE TABLE pages (
-  id INTEGER PRIMARY KEY,
-  url TEXT NOT NULL,
-  originalUrl TEXT NULL,
-  title TEXT NOT NULL,
-  UNIQUE ( url )
-);
-CREATE INDEX pages_url ON pages ( url );
-`;
+const initialMigration = (db: Knex) => {
+  return Promise.all([
+    db.schema.createTable("requests", table => {
+      table
+        .integer("id")
+        .primary()
+        .notNullable();
+      table.text("url").notNullable();
+      table.text("method").notNullable();
+      table.text("headers").notNullable();
+      table.binary("body");
+      table.index(["url", "method"]);
+    }),
+    db.schema.createTable("responses", table => {
+      table
+        .integer("id")
+        .primary()
+        .notNullable();
+      table
+        .integer("requestId")
+        .notNullable()
+        .references("requests.id");
+      table.integer("statusCode").notNullable();
+      table.text("headers").notNullable();
+      table.binary("body");
+      table.unique("requestId");
+    }),
+    db.schema.createTable("pages", table => {
+      table
+        .integer("id")
+        .primary()
+        .notNullable();
+      table.text("url").notNullable();
+      table.text("originalUrl");
+      table.text("title").notNullable();
+      table.unique("url");
+    }),
+  ]);
+};
 
 type Migration = {
   id: number,
   name: string,
-  sql: string,
+  migration: Knex => Promise<mixed>,
 };
 const knownMigrations: Array<Migration> = [
-  { id: 1, name: "initial", sql: initialMigration },
+  { id: 1, name: "initial", migration: initialMigration },
 ];
 
 export class MigrationManager {
-  static forDatabase(db: Database): Promise<MigrationManager> {
-    return db
-      .exec(createMigrationTable)
-      .then(() => db.all(readMigrations))
-      .then(migrations => {
-        let compatible = true;
-        let i = 0;
-        while (i < knownMigrations.length && i < migrations.length) {
-          if (
-            migrations[i].id !== knownMigrations[i].id ||
-            migrations[i].name !== knownMigrations[i].name
-          ) {
-            compatible = false;
-            break;
-          }
-          i++;
+  static forDatabase(db: Knex): Promise<MigrationManager> {
+    return db.schema
+      .hasTable("migrations")
+      .then(exists => {
+        if (exists) {
+          return db
+            .select("id", "name")
+            .from("migrations")
+            .then(migrations => {
+              let compatible = true;
+              let i = 0;
+              while (i < knownMigrations.length && i < migrations.length) {
+                if (
+                  migrations[i].id !== knownMigrations[i].id ||
+                  migrations[i].name !== knownMigrations[i].name
+                ) {
+                  compatible = false;
+                  break;
+                }
+                i++;
+              }
+              if (i !== migrations.length) {
+                compatible = false;
+              }
+              return [compatible, i];
+            });
+        } else {
+          return [true, 0];
         }
-        if (i !== migrations.length) {
-          compatible = false;
-        }
-        const manager = new MigrationManager(db, compatible, i);
+      })
+      .then(([compatible, firstNeededMigration]) => {
+        const manager = new MigrationManager(
+          db,
+          compatible,
+          firstNeededMigration,
+        );
         if (!compatible) {
-          return db.run(SQL`PRAGMA query_only = 1`).then(() => manager);
+          return db.raw(`PRAGMA query_only = 1`).then(() => manager);
         } else {
           return manager;
         }
       });
   }
 
-  db: Database;
+  db: Knex;
   compatible: boolean;
   firstNeededMigration: number;
 
-  constructor(db: Database, compatible: boolean, firstNeededMigration: number) {
+  constructor(db: Knex, compatible: boolean, firstNeededMigration: number) {
     this.db = db;
     this.compatible = compatible;
     this.firstNeededMigration = firstNeededMigration;
@@ -97,17 +113,41 @@ export class MigrationManager {
   }
 
   migrate(): Promise<this> {
-    const nextMigration = () => {
-      if (this.firstNeededMigration >= knownMigrations.length) {
-        return Promise.resolve(this);
-      }
-      const current = knownMigrations[this.firstNeededMigration];
-      this.firstNeededMigration += 1;
-      return this.db
-        .exec(current.sql)
-        .then(() => this.db.run(insertMigration(current.id, current.name)))
-        .then(nextMigration);
-    };
-    return nextMigration();
+    return this.db
+      .raw(`PRAGMA query_only = 0`)
+      .then(() => this.db.schema.hasTable("migrations"))
+      .then(hasMigrations => {
+        if (hasMigrations) return;
+        return this.createMigrationTable();
+      })
+      .then(() => {
+        const nextMigration = () => {
+          if (this.firstNeededMigration >= knownMigrations.length) {
+            return Promise.resolve(this);
+          }
+          const current = knownMigrations[this.firstNeededMigration];
+          this.firstNeededMigration += 1;
+          return current
+            .migration(this.db)
+            .then(() =>
+              this.db("migrations").insert({
+                id: current.id,
+                name: current.name,
+              }),
+            )
+            .then(nextMigration);
+        };
+        return nextMigration();
+      });
+  }
+
+  createMigrationTable() {
+    return this.db.schema.createTable("migrations", table => {
+      table
+        .integer("id")
+        .primary()
+        .notNullable();
+      table.text("name").notNullable();
+    });
   }
 }

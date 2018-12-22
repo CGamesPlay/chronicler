@@ -1,22 +1,8 @@
 // @flow
-import SQL from "sql-template-strings";
-import { default as sqlite, type Database } from "sqlite";
+import knex, { type Knex } from "knex";
+import { Model } from "objection";
 
 import { MigrationManager } from "./migrations";
-
-type Request = {
-  url: string,
-  method: string,
-  headers: { [string]: string },
-  body: ?Buffer,
-};
-
-type Response = {
-  requestId: number,
-  statusCode: number,
-  headers: { [string]: string },
-  body: ?Buffer,
-};
 
 type Replay = {
   url: string,
@@ -28,20 +14,56 @@ type Replay = {
   responseBody: ?Buffer,
 };
 
-type Page = {
-  id: number,
-  url: string,
-  // The original URL that was used, when the actual URL is created from the
-  // History API.
-  originalUrl: ?string,
-  title: string,
-};
+class Request extends Model {
+  static tableName = "requests";
+
+  static get relationMappings() {
+    return {
+      response: {
+        relation: Model.HasOneRelation,
+        modelClass: Response,
+        join: {
+          from: "requests.id",
+          to: "responses.requestId",
+        },
+      },
+    };
+  }
+
+  static jsonSchema = {
+    type: "object",
+    properties: {
+      headers: { type: "object" },
+    },
+  };
+}
+
+class Response extends Model {
+  static tableName = "responses";
+
+  static jsonSchema = {
+    type: "object",
+    properties: {
+      headers: { type: "object" },
+    },
+  };
+}
+
+class Page extends Model {
+  static tableName = "pages";
+}
 
 export default class Archive {
   static create(filename: string): Promise<Archive> {
-    return sqlite
-      .open(filename)
-      .then(database => MigrationManager.forDatabase(database))
+    return Promise.resolve(null)
+      .then(() =>
+        knex({
+          client: "sqlite3",
+          useNullAsDefault: true,
+          connection: { filename },
+        }),
+      )
+      .then(db => MigrationManager.forDatabase(db))
       .then(manager => {
         if (!manager.isCompatible()) {
           throw new Error(
@@ -58,57 +80,56 @@ export default class Archive {
   }
 
   filename: string;
-  db: Database;
+  db: Knex;
 
-  constructor(filename: string, db: Database) {
+  constructor(filename: string, db: Knex) {
     this.filename = filename;
     this.db = db;
   }
 
   insertRequest(request: $Shape<Request>): Promise<number> {
-    return this.db
-      .run(
-        SQL`
-        INSERT INTO requests ( url, method, headers, body )
-        VALUES ( ${request.url}, ${request.method}, ${JSON.stringify(
-          request.headers,
-        )}, ${request.body} )`,
-      )
-      .then(({ lastID }) => lastID);
+    return Request.query(this.db)
+      .insert(request)
+      .then(r => r.id);
   }
 
   deleteRequest(id: number): Promise<mixed> {
-    return this.db.run(SQL`DELETE FROM requests WHERE id = ${id}`);
+    return Request.query(this.db)
+      .delete()
+      .where({ id });
   }
 
   insertResponse(response: $Shape<Response>): Promise<number> {
-    return this.db
-      .run(
-        SQL`
-        INSERT INTO responses ( requestId, statusCode, headers, body )
-        VALUES ( ${response.requestId}, ${
-          response.statusCode
-        }, ${JSON.stringify(response.headers)}, ${response.body} )`,
-      )
-      .then(({ lastID }) => lastID);
+    return Response.query(this.db)
+      .insert(response)
+      .then(r => r.id);
   }
 
   upsertPage(page: $Shape<Page>): Promise<number> {
-    return this.db
-      .run(
-        SQL`
-        INSERT OR REPLACE INTO pages ( url, originalUrl, title )
-        VALUES ( ${page.url}, ${page.originalUrl}, ${page.title} )`,
-      )
-      .then(({ lastID }) => lastID);
+    return Page.query(this.db)
+      .where({ url: page.url })
+      .first()
+      .then(p => {
+        if (p)
+          return p
+            .$query(this.db)
+            .patch(page)
+            .then(() => p.id);
+        else
+          return Page.query(this.db)
+            .insert(page)
+            .then(p => p.id);
+      });
   }
 
   setPageTitle(id: number, title: string): Promise<mixed> {
-    return this.db.run(SQL`UPDATE pages SET title = ${title} WHERE id = ${id}`);
+    return Page.query(this.db)
+      .findById(id)
+      .then(p => p.$query(this.db).patch({ title }));
   }
 
   getPages(): Promise<Page> {
-    return this.db.all(SQL`SELECT * FROM pages ORDER BY id DESC`);
+    return Page.query(this.db).orderBy("id", "desc");
   }
 
   findReplay(url: string, method: string): Promise<?Replay> {
@@ -123,28 +144,24 @@ export default class Archive {
   }
 
   findReplayDirect(url: string, method: string): Promise<?Replay> {
-    return this.db
-      .get(
-        SQL`
-        SELECT url, method, requests.headers AS requestHeaders, requests.body AS requestBody,
-        statusCode, responses.headers as responseHeaders, responses.body AS responseBody
-        FROM requests
-        LEFT JOIN responses
-        ON responses.requestId = requests.id
-        WHERE url = ${url}
-        AND method = ${method}
-        AND statusCode != 304
-        ORDER BY requests.id DESC
-        LIMIT 1`,
-      )
-      .then(raw => {
-        if (!raw || raw.statusCode == null) return null;
-        const result = { ...raw };
-        result.requestHeaders = JSON.parse(raw.requestHeaders);
-        if (raw.responseHeaders) {
-          result.responseHeaders = JSON.parse(raw.responseHeaders);
-        }
-        return result;
+    return Request.query(this.db)
+      .findOne({ url, method })
+      .orderBy("id", "desc")
+      .joinEager("response")
+      .modifyEager("response", b => {
+        b.whereNot({ statusCode: 304 });
+      })
+      .then(request => {
+        if (!request) return null;
+        return {
+          url: request.url,
+          method: request.method,
+          requestHeaders: request.headers,
+          requestBody: request.body,
+          statusCode: request.response.statusCode,
+          responseHeaders: request.response.headers,
+          responseBody: request.response.body,
+        };
       });
   }
 
@@ -154,8 +171,9 @@ export default class Archive {
   // theoretically lead to problems if the URL doesn't refer to a resource that
   // uses the HTML History API (e.g. an image or JavaScript file).
   findSubstitutePage(url: string): Promise<?string> {
-    return this.db
-      .get(SQL`SELECT originalUrl FROM pages WHERE url = ${url}`)
-      .then(res => (res ? res.originalUrl : null));
+    return Page.query(this.db)
+      .findOne({ url })
+      .columns("originalUrl")
+      .then(r => (r ? r.originalUrl : null));
   }
 }

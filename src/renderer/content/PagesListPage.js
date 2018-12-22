@@ -12,7 +12,7 @@ const PagesListPage = () => (
     <Query runQuery={queryPages} variables={{ first: pageSize }}>
       {({ data, error, isLoading }) => {
         if (isLoading) return <div>loading...</div>;
-        if (!data) return <div>{error}</div>;
+        if (!data) return <div>{JSON.stringify(error)}</div>;
         if (data.pages.length == 0) {
           return (
             <NonIdealState
