@@ -1,5 +1,5 @@
 // @flow
-import { BrowserView } from "electron";
+import { BrowserView, Menu } from "electron";
 import EventEmitter from "events";
 import * as path from "path";
 
@@ -10,6 +10,44 @@ import { Archive } from "./archive";
 import errorPage from "./errorPage";
 
 declare var __static: string;
+
+type ContextMenuRequest = {
+  x: number,
+  y: number,
+  linkURL?: string,
+  linkText?: string,
+  pageURL: string,
+  frameURL: string,
+  srcURL?: string,
+  mediaType: string,
+  hasImageContents: boolean,
+  isEditable: boolean,
+  selectionText?: string,
+  titleText?: string,
+  misspelledWord?: string,
+  frameCharset: string,
+  inputFieldType?: string,
+  menuSourceType: string,
+  mediaFlags?: {
+    inError: boolean,
+    isPaused: boolean,
+    isMuted: boolean,
+    hasAudio: boolean,
+    isLooping: boolean,
+    isControlsVisible: boolean,
+    canToggleControls: boolean,
+    canRotate: boolean,
+  },
+  editFlags?: {
+    canUndo: boolean,
+    canRedo: boolean,
+    canCut: boolean,
+    canCopy: boolean,
+    canPaste: boolean,
+    canDelete: boolean,
+    canSelectAll: boolean,
+  },
+};
 
 type IpcHandler = (message: any) => Promise<any>;
 
@@ -107,6 +145,7 @@ export default class Tab extends EventEmitter {
       "did-navigate-in-page",
       this.handleInPageNavigation,
     );
+    this.view.webContents.on("context-menu", this.handleContextMenu);
   }
 
   attachView() {
@@ -229,6 +268,19 @@ export default class Tab extends EventEmitter {
             event.sender.reload();
           }
         });
+    });
+  };
+
+  handleContextMenu = (event: any, request: ContextMenuRequest) => {
+    const menu = Menu.buildFromTemplate([
+      {
+        label: "Open Developer Tools",
+        click: () => this.openDevTools(),
+      },
+    ]).popup({
+      window: this.view,
+      x: request.x,
+      y: request.y + this.app.chromeHeight,
     });
   };
 
