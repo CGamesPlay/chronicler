@@ -4,49 +4,25 @@ import { Model } from "objection";
 
 import { MigrationManager } from "./migrations";
 
-type Replay = {
-  url: string,
-  method: string,
-  requestHeaders: { [string]: string },
-  requestBody: ?Buffer,
-  statusCode: number,
-  responseHeaders: { [string]: string },
-  responseBody: ?Buffer,
-};
-
-class Request extends Model {
-  static tableName = "requests";
-
-  static get relationMappings() {
-    return {
-      response: {
-        relation: Model.HasOneRelation,
-        modelClass: Response,
-        join: {
-          from: "requests.id",
-          to: "responses.requestId",
-        },
-      },
-    };
-  }
+class Recording extends Model {
+  static tableName = "recordings";
 
   static jsonSchema = {
     type: "object",
     properties: {
-      headers: { type: "object" },
+      requestHeaders: { type: "object" },
+      responseHeaders: { type: "object" },
     },
   };
-}
 
-class Response extends Model {
-  static tableName = "responses";
-
-  static jsonSchema = {
-    type: "object",
-    properties: {
-      headers: { type: "object" },
-    },
-  };
+  id: number;
+  url: string;
+  method: string;
+  requestHeaders: Object;
+  requestBody: ?Buffer;
+  statusCode: ?number;
+  responseHeaders: ?Object;
+  responseBody: ?Buffer;
 }
 
 class Page extends Model {
@@ -87,22 +63,23 @@ export default class Archive {
     this.db = db;
   }
 
-  insertRequest(request: $Shape<Request>): Promise<number> {
-    return Request.query(this.db)
-      .insert(request)
+  insertRecording(fields: Object): Promise<number> {
+    return Recording.query(this.db)
+      .insert(fields)
       .then(r => r.id);
   }
 
-  deleteRequest(id: number): Promise<mixed> {
-    return Request.query(this.db)
-      .delete()
-      .where({ id });
+  deleteRecording(id: number): Promise<mixed> {
+    return Recording.query(this.db)
+      .where({ id })
+      .delete();
   }
 
-  insertResponse(response: $Shape<Response>): Promise<number> {
-    return Response.query(this.db)
-      .insert(response)
-      .then(r => r.id);
+  updateRecording(fields: Object): Promise<mixed> {
+    return Recording.query(this.db)
+      .findById(fields.id)
+      .patch(fields)
+      .then(() => {});
   }
 
   upsertPage(page: $Shape<Page>): Promise<number> {
@@ -132,7 +109,7 @@ export default class Archive {
     return Page.query(this.db).orderBy("id", "desc");
   }
 
-  findReplay(url: string, method: string): Promise<?Replay> {
+  findReplay(url: string, method: string): Promise<?Recording> {
     return this.findReplayDirect(url, method).then(replay => {
       if (replay) return replay;
       if (method !== "GET") return null;
@@ -143,25 +120,14 @@ export default class Archive {
     });
   }
 
-  findReplayDirect(url: string, method: string): Promise<?Replay> {
-    return Request.query(this.db)
+  findReplayDirect(url: string, method: string): Promise<?Recording> {
+    return Recording.query(this.db)
       .findOne({ url, method })
+      .whereNot({ statusCode: 304 })
       .orderBy("id", "desc")
-      .joinEager("response")
-      .modifyEager("response", b => {
-        b.whereNot({ statusCode: 304 });
-      })
-      .then(request => {
-        if (!request) return null;
-        return {
-          url: request.url,
-          method: request.method,
-          requestHeaders: request.headers,
-          requestBody: request.body,
-          statusCode: request.response.statusCode,
-          responseHeaders: request.response.headers,
-          responseBody: request.response.body,
-        };
+      .then(recording => {
+        if (!recording || !recording.statusCode) return null;
+        return recording;
       });
   }
 

@@ -3,30 +3,19 @@ import type { Knex } from "knex";
 
 const initialMigration = (db: Knex) => {
   return Promise.all([
-    db.schema.createTable("requests", table => {
+    db.schema.createTable("recordings", table => {
       table
         .integer("id")
         .primary()
         .notNullable();
       table.text("url").notNullable();
       table.text("method").notNullable();
-      table.text("headers").notNullable();
-      table.binary("body");
+      table.text("requestHeaders").notNullable();
+      table.binary("requestBody");
+      table.integer("statusCode");
+      table.text("responseHeaders");
+      table.binary("responseBody");
       table.index(["url", "method"]);
-    }),
-    db.schema.createTable("responses", table => {
-      table
-        .integer("id")
-        .primary()
-        .notNullable();
-      table
-        .integer("requestId")
-        .notNullable()
-        .references("requests.id");
-      table.integer("statusCode").notNullable();
-      table.text("headers").notNullable();
-      table.binary("body");
-      table.unique("requestId");
     }),
     db.schema.createTable("pages", table => {
       table

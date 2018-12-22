@@ -1,6 +1,4 @@
 // @flow
-import SQL from "sql-template-strings";
-import { default as sqlite, type Database } from "sqlite";
 import { WritableStreamBuffer } from "stream-buffers";
 import intoStream from "into-stream";
 
@@ -17,18 +15,18 @@ import { teeStream } from "./utils";
 
 class ArchiveRequestRecording implements IRequestRecording {
   archive: Archive;
-  requestId: Promise<number>;
+  recordingId: Promise<number>;
 
   constructor(archive: Archive, request: Request) {
     this.archive = archive;
-    this.requestId = new Promise(resolve => {
+    this.recordingId = new Promise(resolve => {
       const recordRequest = body =>
         this.archive
-          .insertRequest({
+          .insertRecording({
             url: request.url,
             method: request.method,
-            headers: request.headers,
-            body,
+            requestHeaders: request.headers,
+            requestBody: body,
           })
           .then(resolve);
       if (request.uploadData) {
@@ -43,7 +41,7 @@ class ArchiveRequestRecording implements IRequestRecording {
   }
 
   finalize(response: Response): Promise<void> {
-    return this.requestId.then(requestId => {
+    return this.recordingId.then(recordingId => {
       const bodyStream = new WritableStreamBuffer();
       // Tee off the data stream so we can log it and download it.
       const streams = teeStream(response.data);
@@ -51,19 +49,19 @@ class ArchiveRequestRecording implements IRequestRecording {
       streams[1].pipe(bodyStream);
 
       streams[1].once("end", () => {
-        this.archive.insertResponse({
-          requestId,
+        this.archive.updateRecording({
+          id: recordingId,
           statusCode: response.statusCode,
-          headers: response.headers,
-          body: bodyStream.getContents() || null,
+          responseHeaders: response.headers,
+          responseBody: bodyStream.getContents() || null,
         });
       });
     });
   }
 
   abort(): Promise<void> {
-    return this.requestId.then(requestId => {
-      this.archive.deleteRequest(requestId);
+    return this.recordingId.then(recordingId => {
+      this.archive.deleteRecording(recordingId);
     });
   }
 }
