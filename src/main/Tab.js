@@ -18,6 +18,7 @@ const chromeErrorUrl = "chrome-error://chromewebdata/";
 // Keeps track of URL and title changes in the context of a single navigation.
 class PageTracker {
   archive: Archive;
+  collectionId: Promise<number>;
   // Tracks the initial full-page navigation Archive page ID.
   rootPageId: Promise<number>;
   // Tracks the URL of the full-page navigation.
@@ -25,22 +26,35 @@ class PageTracker {
   // Tracks the most recent in-page navigation Archive page ID.
   currentPageId: Promise<number>;
 
-  constructor(archive: Archive, rootUrl: string, initialTitle: string) {
+  constructor(
+    archive: Archive,
+    collectionId: Promise<number>,
+    rootUrl: string,
+    initialTitle: string,
+  ) {
     this.archive = archive;
+    this.collectionId = collectionId;
     this.rootUrl = rootUrl;
-    this.currentPageId = this.rootPageId = this.archive.upsertPage({
-      url: this.rootUrl,
-      title: initialTitle,
-    });
+    this.currentPageId = this.rootPageId = this.collectionId.then(
+      collectionId =>
+        this.archive.upsertPage({
+          collectionId,
+          url: this.rootUrl,
+          title: initialTitle,
+        }),
+    );
   }
 
   trackInPageNavigation(url: string, title: string) {
     this.rootPageId.then(id => {
-      this.currentPageId = this.archive.upsertPage({
-        url,
-        title,
-        originalUrl: url === this.rootUrl ? null : this.rootUrl,
-      });
+      this.currentPageId = this.collectionId.then(collectionId =>
+        this.archive.upsertPage({
+          collectionId,
+          url,
+          title,
+          originalUrl: url === this.rootUrl ? null : this.rootUrl,
+        }),
+      );
     });
   }
 
@@ -171,6 +185,7 @@ export default class Tab extends EventEmitter {
     if (this.app.networkAdapter.isRecording() && statusCode > 0) {
       this.activePage = new PageTracker(
         this.app.archive,
+        this.app.recordingSession.collectionId,
         url,
         this.view.webContents.getTitle(),
       );

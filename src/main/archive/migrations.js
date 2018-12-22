@@ -3,11 +3,41 @@ import type { Knex } from "knex";
 
 const initialMigration = (db: Knex) => {
   return Promise.all([
+    db.schema.createTable("collections", table => {
+      table
+        .integer("id")
+        .primary()
+        .notNullable();
+      table.text("name").notNullable();
+      table.text("notes");
+      table.timestamp("createdAt").notNullable();
+      table.timestamp("updatedAt").notNullable();
+    }),
+    db.schema.createTable("pages", table => {
+      table
+        .integer("id")
+        .primary()
+        .notNullable();
+      table
+        .integer("collectionId")
+        .notNullable()
+        .references("collections.id");
+      table.text("url").notNullable();
+      table.text("originalUrl");
+      table.text("title").notNullable();
+      table.timestamp("createdAt").notNullable();
+      table.timestamp("updatedAt").notNullable();
+      table.unique("url");
+    }),
     db.schema.createTable("recordings", table => {
       table
         .integer("id")
         .primary()
         .notNullable();
+      table
+        .integer("collectionId")
+        .notNullable()
+        .references("collections.id");
       table.text("url").notNullable();
       table.text("method").notNullable();
       table.text("requestHeaders").notNullable();
@@ -15,17 +45,9 @@ const initialMigration = (db: Knex) => {
       table.integer("statusCode");
       table.text("responseHeaders");
       table.binary("responseBody");
+      table.timestamp("createdAt").notNullable();
+      table.timestamp("updatedAt").notNullable();
       table.index(["url", "method"]);
-    }),
-    db.schema.createTable("pages", table => {
-      table
-        .integer("id")
-        .primary()
-        .notNullable();
-      table.text("url").notNullable();
-      table.text("originalUrl");
-      table.text("title").notNullable();
-      table.unique("url");
     }),
   ]);
 };

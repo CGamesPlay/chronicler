@@ -40,7 +40,7 @@ export default class NetworkAdapter {
     return this.mode === REPLAY;
   }
 
-  startRecordingSession(): Promise<void> {
+  startRecordingSession(): Promise<IRecordingSession> {
     return (this.ready = this.ready.then(() => {
       if (this.mode === RECORD) {
         throw new Error("Recording session already in progress");
@@ -48,6 +48,7 @@ export default class NetworkAdapter {
       return this.persister.createRecordingSession().then(session => {
         this.mode = RECORD;
         this.session = session;
+        return session;
       });
     }));
   }

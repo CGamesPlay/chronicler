@@ -4,14 +4,81 @@ import { Model } from "objection";
 
 import { MigrationManager } from "./migrations";
 
-class Recording extends Model {
+class AppModel extends Model {
+  $beforeInsert(queryContext: Object) {
+    return Promise.resolve(super.$beforeInsert(queryContext)).then(() => {
+      // Set the createdAt and updatedAt if those are part of the schema.
+      const schema = this.constructor.jsonSchema;
+      if (schema && schema.properties) {
+        if (!this.createdAt && schema.properties.createdAt) {
+          this.createdAt = new Date().toISOString();
+        }
+        if (schema.properties.updatedAt) {
+          this.updatedAt = this.createdAt || new Date().toISOString();
+        }
+      }
+    });
+  }
+
+  $beforeUpdate(opt: Object, queryContext: Object) {
+    return Promise.resolve(super.$beforeUpdate(opt, queryContext)).then(() => {
+      // Set the updatedAt if those are part of the schema.
+      const schema = this.constructor.jsonSchema;
+      if (schema && schema.properties && schema.properties.updatedAt) {
+        this.updatedAt = new Date().toISOString();
+      }
+    });
+  }
+}
+
+class Collection extends AppModel {
+  static tableName = "collections";
+  static jsonSchema = {
+    type: "object",
+    required: ["name"],
+    properties: {
+      id: { type: "number" },
+      name: { type: "string", minLength: 1, maxLength: 255 },
+      notes: { type: ["string", "null"], maxLength: 1024 },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+    },
+  };
+}
+
+class Page extends AppModel {
+  static tableName = "pages";
+  static jsonSchema = {
+    type: "object",
+    required: ["collectionId", "url", "title"],
+    properties: {
+      id: { type: "number" },
+      collectionId: { type: "number" },
+      url: { type: "string", minLength: 1, maxLength: 1024 },
+      originalUrl: { type: ["string", "null"], minLength: 1, maxLength: 1024 },
+      title: { type: "string", minLength: 1, maxLength: 255 },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+    },
+  };
+}
+
+class Recording extends AppModel {
   static tableName = "recordings";
 
   static jsonSchema = {
     type: "object",
+    required: ["collectionId", "url", "method", "requestHeaders"],
     properties: {
+      id: { type: "number" },
+      collectionId: { type: "number" },
+      url: { type: "string", minLength: 1, maxLength: 1024 },
+      method: { type: "string", minLength: 1, maxLength: "16" },
       requestHeaders: { type: "object" },
-      responseHeaders: { type: "object" },
+      statusCode: { type: ["number", "null"] },
+      responseHeaders: { type: ["object", "null"] },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
     },
   };
 
@@ -23,10 +90,6 @@ class Recording extends Model {
   statusCode: ?number;
   responseHeaders: ?Object;
   responseBody: ?Buffer;
-}
-
-class Page extends Model {
-  static tableName = "pages";
 }
 
 export default class Archive {
@@ -61,6 +124,12 @@ export default class Archive {
   constructor(filename: string, db: Knex) {
     this.filename = filename;
     this.db = db;
+  }
+
+  insertCollection(fields: Object): Promise<number> {
+    return Collection.query(this.db)
+      .insert(fields)
+      .then(c => c.id);
   }
 
   insertRecording(fields: Object): Promise<number> {

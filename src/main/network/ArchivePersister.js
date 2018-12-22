@@ -15,28 +15,37 @@ import { teeStream } from "./utils";
 
 class ArchiveRequestRecording implements IRequestRecording {
   archive: Archive;
+  session: ArchiveRecordingSession;
   recordingId: Promise<number>;
 
-  constructor(archive: Archive, request: Request) {
+  constructor(
+    archive: Archive,
+    session: ArchiveRecordingSession,
+    request: Request,
+  ) {
     this.archive = archive;
+    this.session = session;
     this.recordingId = new Promise(resolve => {
-      const recordRequest = body =>
-        this.archive
-          .insertRecording({
-            url: request.url,
-            method: request.method,
-            requestHeaders: request.headers,
-            requestBody: body,
-          })
-          .then(resolve);
-      if (request.uploadData) {
-        const readable = request.uploadData;
-        const bodyStream = new WritableStreamBuffer();
-        readable.pipe(bodyStream);
-        readable.once("end", () => recordRequest(bodyStream.getContents()));
-      } else {
-        recordRequest(null);
-      }
+      this.session.collectionId.then(collectionId => {
+        const recordRequest = body =>
+          this.archive
+            .insertRecording({
+              collectionId,
+              url: request.url,
+              method: request.method,
+              requestHeaders: request.headers,
+              requestBody: body,
+            })
+            .then(resolve);
+        if (request.uploadData) {
+          const readable = request.uploadData;
+          const bodyStream = new WritableStreamBuffer();
+          readable.pipe(bodyStream);
+          readable.once("end", () => recordRequest(bodyStream.getContents()));
+        } else {
+          recordRequest(null);
+        }
+      });
     });
   }
 
@@ -68,9 +77,13 @@ class ArchiveRequestRecording implements IRequestRecording {
 
 class ArchiveRecordingSession implements IRecordingSession {
   archive: Archive;
+  collectionId: Promise<number>;
 
   constructor(archive: Archive) {
     this.archive = archive;
+    this.collectionId = this.archive.insertCollection({
+      name: `Recording Session ${new Date().toString()}`,
+    });
   }
 
   recordRequest(request: Request): Promise<ArchivePersister.RequestRecording> {
@@ -83,7 +96,7 @@ class ArchiveRecordingSession implements IRecordingSession {
       recordRequest = { ...request, uploadData: streams[1] };
     }
     return Promise.resolve(
-      new ArchiveRequestRecording(this.archive, recordRequest),
+      new ArchiveRequestRecording(this.archive, this, recordRequest),
     );
   }
 

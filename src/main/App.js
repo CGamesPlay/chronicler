@@ -39,6 +39,7 @@ export default class App extends EventEmitter {
   session: any;
   archive: Archive;
   networkAdapter: NetworkAdapter;
+  recordingSession: ArchivePersister.RecordingSession;
   requestConnector: ElectronRequestConnector;
   tabs: Array<Tab>;
   activeTab: ?Tab;
@@ -170,7 +171,8 @@ export default class App extends EventEmitter {
           case "record":
             if (this.networkAdapter.isRecording()) return;
             // Refresh the current page to kick off the recording
-            return this.networkAdapter.startRecordingSession().then(() => {
+            return this.networkAdapter.startRecordingSession().then(session => {
+              this.recordingSession = (session: any);
               if (this.activeTab) this.activeTab.reload();
             });
           case "replay":
