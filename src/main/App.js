@@ -10,9 +10,13 @@ import {
   CHROME_READY,
   CHROME_RESIZE,
   NETWORK_MODE,
+  SCRAPE_START,
+  SCRAPE_STATUS,
   TAB_UPDATE,
   TAB_FOCUS,
   TAB_NAVIGATE,
+  type ScrapeConfig,
+  type ScrapeStatus,
 } from "common/events";
 import { chromeUrl, newTabUrl } from "common/urls";
 import { appName } from "common/config";
@@ -25,6 +29,7 @@ import {
   ArchivePersister,
 } from "./network";
 import { Archive } from "./archive";
+import ScrapeRunner from "./ScrapeRunner";
 
 const protocols = {
   http: HttpProtocolHandler,
@@ -45,11 +50,12 @@ export default class App extends EventEmitter {
   activeTab: ?Tab;
   isChangingNetworkMode: boolean;
   window: BrowserWindow;
+  currentScrape: ?ScrapeRunner;
 
   constructor(id: string) {
     super();
     this.id = id;
-    this.chromeHeight = 20;
+    this.chromeHeight = 0;
     this.tabs = [];
     this.session = session.fromPartition(this.id);
     this.isChangingNetworkMode = false;
@@ -73,18 +79,18 @@ export default class App extends EventEmitter {
         width: 1200,
         height: 900,
       });
+      this.window.webContents.toggleDevTools = function() {
+        if (this.isDevToolsOpened()) {
+          this.closeDevTools();
+        } else {
+          this.openDevTools({ mode: "detach" });
+        }
+      };
 
       this.window.on("closed", () => {
         this.window = null;
         this.close();
         this.emit("closed");
-      });
-
-      this.window.webContents.on("devtools-opened", () => {
-        this.window.focus();
-        setImmediate(() => {
-          this.window.focus();
-        });
       });
 
       ipcMain.on(CHROME_MESSAGE, this.handleChromeMessage);
@@ -124,6 +130,8 @@ export default class App extends EventEmitter {
           return this.handleChromeResize(data.payload);
         case NETWORK_MODE:
           return this.handleRequestNetworkMode(data.payload);
+        case SCRAPE_START:
+          return this.handleStartScrape((data.payload: any));
         case TAB_UPDATE:
           return this.handleRequestTabUpdate(data.payload);
         case TAB_NAVIGATE:
@@ -186,6 +194,21 @@ export default class App extends EventEmitter {
         this.sendChromeMessage(NETWORK_MODE, { mode });
       });
   }
+
+  handleStartScrape(config: ScrapeConfig) {
+    if (this.currentScrape && this.currentScrape.isRunning()) return;
+    this.currentScrape = new ScrapeRunner(
+      this,
+      this.handleScrapeStatus,
+      config,
+    );
+    this.currentScrape.start();
+  }
+
+  handleScrapeStatus = (runner: ScrapeRunner, status: ScrapeStatus) => {
+    if (runner !== this.currentScrape) return;
+    this.sendChromeMessage(SCRAPE_STATUS, status);
+  };
 
   handleRequestTabUpdate(data: any) {
     const tab = this.tabs.find(t => t.id === data.id);

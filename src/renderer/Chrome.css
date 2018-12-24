@@ -2,6 +2,10 @@ html {
   background: transparent;
 }
 
+.Chrome__controls {
+  border-bottom: solid 1px hsl(0, 0%, 86%);
+}
+
 .tabs.is-fullwidth .Chrome__newTabButton {
   flex: 0;
   width: 2rem;

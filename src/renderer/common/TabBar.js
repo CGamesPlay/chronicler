@@ -16,11 +16,14 @@ const Tab = ({ active, onClick, className, children }: TabProps) => (
 );
 
 type Props = {
+  className?: string,
   children: React.Node,
 };
 
-const TabBar = ({ children }: Props) => (
-  <div className="tabs is-toggle is-fullwidth is-small">
+const TabBar = ({ className, children }: Props) => (
+  <div
+    className={classnames(className, "tabs is-toggle is-fullwidth is-small")}
+  >
     <ul>{children}</ul>
   </div>
 );

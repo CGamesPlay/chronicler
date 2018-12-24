@@ -11,7 +11,9 @@ import { PagesListPage } from "./content";
 const CollectionBrowser = () => (
   <Router basename="/html/">
     <div>
-      <Helmet defaultTitle={appName} />
+      <Helmet defaultTitle={appName}>
+        <body className="has-background-white" />
+      </Helmet>
       <Route exact path={allPagesUrl} component={PagesListPage} />
     </div>
   </Router>

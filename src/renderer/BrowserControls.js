@@ -17,6 +17,7 @@ type Props = {
   onStop?: () => void,
   onChangeUrl?: string => void,
   onChangeNetworkMode?: NetworkMode => void,
+  onRequestScrape?: () => void,
 };
 
 export default class BrowserControls extends React.Component<Props> {
@@ -95,6 +96,9 @@ export default class BrowserControls extends React.Component<Props> {
               : this.props.networkMode === "replay"
                 ? "Offline"
                 : "Not Recording"}
+          </button>
+          <button className="button" onClick={this.props.onRequestScrape}>
+            Scrape
           </button>
         </div>
       </div>

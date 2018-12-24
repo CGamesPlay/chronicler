@@ -151,6 +151,7 @@ export default class Tab extends EventEmitter {
   attachView() {
     this.app.window.setBrowserView(this.view);
     this.view.setBounds(this.app.getTabBounds());
+    this.view.webContents.invalidate();
   }
 
   openDevTools() {
@@ -181,6 +182,14 @@ export default class Tab extends EventEmitter {
 
   setIpcHandler(ipcHandler: ?IpcHandler) {
     this.ipcHandler = ipcHandler;
+  }
+
+  getURL(): string {
+    return this.view.webContents.getURL();
+  }
+
+  executeJavaScript(script: string): Promise<any> {
+    return this.view.webContents.executeJavaScript(script);
   }
 
   toJSON() {

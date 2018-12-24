@@ -10,9 +10,10 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 export const contentRoot = isDevelopment
   ? `http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT || "9800"}/html`
   : "app://main/html";
+export const contentUrl = (path: string) => contentRoot + path;
 
 export const allPagesUrl = "/all-pages";
 
 // Absolute URLs referenced by the main process
 export const chromeUrl = "app://main/html/chrome.html";
-export const newTabUrl = contentRoot + allPagesUrl;
+export const newTabUrl = contentUrl(allPagesUrl);

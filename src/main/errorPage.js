@@ -6,6 +6,8 @@ import { contentRoot, allPagesUrl } from "common/urls";
 // $FlowFixMe - doesn't handle webpack directives
 import bulma from "raw-loader!bulma/css/bulma.css";
 
+const combinedCss = bulma + "\n\nbody { background: white; }";
+
 type ErrorPage = {
   css: string,
   title: string,
