@@ -63,6 +63,9 @@ export default class ScrapeRunner {
     this.stopping = true;
     return Promise.resolve(resolve => {
       this.notifyStopped = resolve;
+    }).then(() => {
+      this.status.state = "canceled";
+      this.report();
     });
   }
 

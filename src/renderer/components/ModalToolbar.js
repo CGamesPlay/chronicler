@@ -10,10 +10,12 @@ type Props = {
 
 const ModalToolbar = ({ onHide, children }: Props) => {
   return (
-    <div className="ModalToolbar level">
-      <div className="level-left">{children}</div>
-      <div className="level-right">
-        <button className="delete" onClick={onHide} />
+    <div className="ModalToolbar">
+      <div className="columns is-vcentered">
+        {children}
+        <div className="column is-narrow">
+          <button className="delete" onClick={onHide} />
+        </div>
       </div>
     </div>
   );

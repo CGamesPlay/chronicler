@@ -18,7 +18,7 @@ import {
   type ScrapeConfig,
   type ScrapeStatus,
 } from "common/events";
-import { ModalToolbar, Resizable, TabBar } from "./common";
+import { ModalToolbar, Resizable, TabBar } from "./components";
 import Tab from "./Tab";
 import BrowserControls from "./BrowserControls";
 import ScrapeToolbar from "./ScrapeToolbar";
@@ -88,9 +88,11 @@ export default class Chrome extends React.Component<{}, State> {
           </TabBar>
           {this.state.showScrapeToolbar && (
             <ScrapeToolbar
-              scrapeStatus={this.state.scrapeStatus}
+              status={this.state.scrapeStatus}
               onScrape={config => this.sendChromeMessage(SCRAPE_START, config)}
-              onHide={() => this.setState({ showScrapeToolbar: false })}
+              onHide={() =>
+                this.setState({ showScrapeToolbar: false, scrapeStatus: null })
+              }
             />
           )}
         </div>

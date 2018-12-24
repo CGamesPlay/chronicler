@@ -3,7 +3,7 @@ import * as React from "react";
 
 import { queryPages } from "../queries";
 import Query from "../Query";
-import { Layout, NonIdealState } from "./components";
+import { Layout, NonIdealState } from "../components";
 
 const pageSize = 50;
 
