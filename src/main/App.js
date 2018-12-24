@@ -11,6 +11,7 @@ import {
   CHROME_RESIZE,
   NETWORK_MODE,
   SCRAPE_START,
+  SCRAPE_STOP,
   SCRAPE_STATUS,
   TAB_UPDATE,
   TAB_FOCUS,
@@ -132,6 +133,8 @@ export default class App extends EventEmitter {
           return this.handleRequestNetworkMode(data.payload);
         case SCRAPE_START:
           return this.handleStartScrape((data.payload: any));
+        case SCRAPE_STOP:
+          return this.handleStopScrape();
         case TAB_UPDATE:
           return this.handleRequestTabUpdate(data.payload);
         case TAB_NAVIGATE:
@@ -203,6 +206,11 @@ export default class App extends EventEmitter {
       config,
     );
     this.currentScrape.start();
+  }
+
+  handleStopScrape() {
+    if (!this.currentScrape || !this.currentScrape.isRunning()) return;
+    this.currentScrape.stop();
   }
 
   handleScrapeStatus = (runner: ScrapeRunner, status: ScrapeStatus) => {

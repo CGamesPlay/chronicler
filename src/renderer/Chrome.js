@@ -11,6 +11,7 @@ import {
   CHROME_RESIZE,
   NETWORK_MODE,
   SCRAPE_START,
+  SCRAPE_STOP,
   SCRAPE_STATUS,
   TAB_UPDATE,
   TAB_FOCUS,
@@ -90,6 +91,7 @@ export default class Chrome extends React.Component<{}, State> {
             <ScrapeToolbar
               status={this.state.scrapeStatus}
               onScrape={config => this.sendChromeMessage(SCRAPE_START, config)}
+              onCancelScrape={config => this.sendChromeMessage(SCRAPE_STOP)}
               onHide={() =>
                 this.setState({ showScrapeToolbar: false, scrapeStatus: null })
               }
@@ -149,7 +151,7 @@ export default class Chrome extends React.Component<{}, State> {
     } else if (data.type === NETWORK_MODE) {
       this.handleNetworkMode(data.payload);
     } else if (data.type === SCRAPE_STATUS) {
-      this.setState({ scrapeStatus: data.payload });
+      this.setState({ scrapeStatus: data.payload, showScrapeToolbar: true });
     }
   };
 

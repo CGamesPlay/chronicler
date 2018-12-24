@@ -7,6 +7,7 @@ import {
 import { contentUrl, allPagesUrl } from "common/urls";
 import type App from "./App";
 import type Tab from "./Tab";
+import TokenBucket from "./TokenBucket";
 
 type StatusReporter = (runner: ScrapeRunner, status: ScrapeStatus) => void;
 
@@ -15,6 +16,7 @@ export default class ScrapeRunner {
   status: ScrapeStatus;
   reporter: StatusReporter;
   config: ScrapeConfig;
+  limiter: TokenBucket;
   allKnownPages: Set<string>;
   queue: Array<string>;
   stopping: boolean;
@@ -22,9 +24,16 @@ export default class ScrapeRunner {
 
   constructor(app: App, reporter: StatusReporter, config: ScrapeConfig) {
     this.app = app;
-    this.status = { state: "initialized", pagesVisited: 0, pagesRemaining: 1 };
+    this.status = {
+      state: "initialized",
+      pagesVisited: 0,
+      pagesRemaining: 1,
+      ppm: 0,
+      ppmLimit: config.ppmLimit,
+    };
     this.reporter = reporter;
     this.config = config;
+    this.limiter = new TokenBucket(config.ppmLimit / 60, 10);
     this.allKnownPages = new Set();
     this.queue = [];
     this.stopping = false;
@@ -71,6 +80,7 @@ export default class ScrapeRunner {
 
   // Send a report immediately
   report() {
+    this.status.ppm = this.limiter.averageRate() * 60;
     this.reporter(this, this.status);
   }
 
@@ -89,8 +99,12 @@ export default class ScrapeRunner {
   // Wait for the current page in the tab to finish loading.
   waitForPage(tab: Tab): Promise<mixed> {
     if (tab.view.webContents.isLoading()) {
+      // Report every second about our falling ppm
+      const interval = setInterval(() => this.report(), 1000);
       return new Promise(resolve => {
         tab.view.webContents.once("did-stop-loading", resolve);
+      }).then(() => {
+        clearInterval(interval);
       });
     } else {
       return Promise.resolve(undefined);
@@ -146,7 +160,24 @@ export default class ScrapeRunner {
       this.report();
       return Promise.resolve(null);
     }
-    tab.loadURL(nextUrl);
-    return this.advanceQueue(tab);
+    return this.rateLimit().then(() => {
+      tab.loadURL(nextUrl);
+      return this.advanceQueue(tab);
+    });
+  }
+
+  // Delay until we're allowed to load another page
+  rateLimit(): Promise<mixed> {
+    return this.delay(this.limiter.delayForTokens(1)).then(() => {
+      // If we are scraping in multiple tabs, we may have to repeat the delay.
+      if (!this.limiter.hasTokens(1)) return this.rateLimit();
+      this.limiter.takeTokens(1);
+    });
+  }
+
+  delay(sec: number): Promise<mixed> {
+    return new Promise(resolve => {
+      setTimeout(resolve, sec * 1000);
+    });
   }
 }

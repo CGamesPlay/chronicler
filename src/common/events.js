@@ -11,6 +11,7 @@ export const CHROME_READY = "CHROME_READY";
 export const CHROME_RESIZE = "CHROME_RESIZE";
 export const NETWORK_MODE = "NETWORK_MODE";
 export const SCRAPE_START = "SCRAPE_START";
+export const SCRAPE_STOP = "SCRAPE_STOP";
 export const SCRAPE_STATUS = "SCRAPE_STATUS";
 export const TAB_UPDATE = "TAB_UPDATE";
 export const TAB_FOCUS = "TAB_FOCUS";
@@ -23,6 +24,10 @@ export type ScrapeConfig = {
   rootUrls: Array<string>,
   // All links returned by this xpath expression will be scraped.
   linkXpath: string,
+  // Maximum number of pages per minute to load. This is different from
+  // requests per minute, since all assets are still loaded as quickly as
+  // possible after the page.
+  ppmLimit: number,
 };
 
 export type ScrapeState = "initialized" | "running" | "finished" | "canceled";
@@ -34,4 +39,8 @@ export type ScrapeStatus = {
   // Currently known number of pages remaining. This number will go up as new
   // pages are scraped.
   pagesRemaining: number,
+  // Current average pages per minute
+  ppm: number,
+  // Configured maximum pages per minute
+  ppmLimit: number,
 };
