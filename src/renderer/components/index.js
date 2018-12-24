@@ -4,3 +4,4 @@ export { default as ModalToolbar } from "./ModalToolbar";
 export { default as NonIdealState } from "./NonIdealState";
 export { default as Resizable } from "./Resizable";
 export { default as TabBar } from "./TabBar";
+export { default as Timestamp } from "./Timestamp";

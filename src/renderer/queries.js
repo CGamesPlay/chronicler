@@ -8,6 +8,8 @@ type Page = {
   id: number,
   title: string,
   url: string,
+  createdAt: string,
+  updatedAt: string,
 };
 
 type PageQuery = {

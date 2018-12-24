@@ -3,7 +3,7 @@ import * as React from "react";
 
 import { queryPages } from "../queries";
 import Query from "../Query";
-import { Layout, NonIdealState } from "../components";
+import { Layout, NonIdealState, Timestamp } from "../components";
 
 const pageSize = 50;
 
@@ -26,6 +26,8 @@ const PagesListPage = () => (
             <thead>
               <tr>
                 <th>Page</th>
+                <th>First Recorded</th>
+                <th>Recording Updated</th>
               </tr>
             </thead>
             <tbody>
@@ -33,6 +35,12 @@ const PagesListPage = () => (
                 <tr key={page.id}>
                   <td>
                     <a href={page.url}>{page.title}</a>
+                  </td>
+                  <td>
+                    <Timestamp value={page.createdAt} />
+                  </td>
+                  <td>
+                    <Timestamp value={page.updatedAt} format="relative" />
                   </td>
                 </tr>
               ))}

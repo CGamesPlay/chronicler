@@ -160,11 +160,12 @@ export default class Tab extends EventEmitter {
 
   requestUpdate(data: any) {
     if (data.url) {
-      this.view.webContents.loadURL(data.url);
+      this.loadURL(data.url);
     }
   }
 
   loadURL(url: string) {
+    this.activePage = null;
     this.view.webContents.loadURL(url);
   }
 
@@ -229,14 +230,20 @@ export default class Tab extends EventEmitter {
     }
   };
 
-  handleNavigation = (_event: any, url: string, statusCode: number) => {
-    if (this.app.networkAdapter.isRecording() && statusCode > 0) {
+  handleNavigation = (_event: mixed, url: string, statusCode: number) => {
+    if (
+      this.app.networkAdapter.isRecording() &&
+      !this.app.networkAdapter.urlBypassesPersister(url) &&
+      statusCode > 0
+    ) {
       this.activePage = new PageTracker(
         this.app.archive,
         this.app.recordingSession.collectionId,
         url,
         this.view.webContents.getTitle(),
       );
+    } else {
+      this.activePage = null;
     }
   };
 
