@@ -1,11 +1,13 @@
 // @flow
 import * as React from "react";
+import classnames from "classnames";
 
-import { parseUrl } from "./utils";
+import UrlBar from "./UrlBar";
 
 type NetworkMode = "record" | "replay" | "passthrough";
 
 type Props = {
+  className?: string,
   url: string,
   loading: boolean,
   canNavigateBack: boolean,
@@ -21,21 +23,6 @@ type Props = {
 };
 
 export default class BrowserControls extends React.Component<Props> {
-  urlInput: ?HTMLInputElement;
-
-  handleUrlSubmit = (event: Event) => {
-    event.preventDefault();
-    const inputEl = this.urlInput;
-    if (inputEl) {
-      const typedUrl = inputEl.value;
-      const parsedUrl = parseUrl(typedUrl);
-      inputEl.value = this.props.url;
-      if (this.props.onChangeUrl) {
-        this.props.onChangeUrl(parsedUrl);
-      }
-    }
-  };
-
   handleToggleNetworkMode = () => {
     if (!this.props.onChangeNetworkMode) return;
     switch (this.props.networkMode) {
@@ -49,17 +36,9 @@ export default class BrowserControls extends React.Component<Props> {
     }
   };
 
-  componentDidUpdate(prevProps: Props) {
-    const inputEl = this.urlInput;
-    if (!inputEl) return;
-    if (inputEl.value === prevProps.url && prevProps.url !== this.props.url) {
-      inputEl.value = this.props.url;
-    }
-  }
-
   render() {
     return (
-      <div className="field is-grouped is-marginless">
+      <div className={classnames(this.props.className, "field is-grouped")}>
         <div className="control has-addons">
           <button
             className="button"
@@ -84,11 +63,11 @@ export default class BrowserControls extends React.Component<Props> {
             {this.props.loading ? "Stop" : "Reload"}
           </button>
         </div>
-        <div className="control is-expanded">
-          <form onSubmit={this.handleUrlSubmit}>
-            <input ref={e => (this.urlInput = e)} className="input" />
-          </form>
-        </div>
+        <UrlBar
+          className="control is-expanded"
+          url={this.props.url}
+          onChangeUrl={this.props.onChangeUrl}
+        />
         <div className="control has-addons">
           <button className="button" onClick={this.handleToggleNetworkMode}>
             {this.props.networkMode === "record"

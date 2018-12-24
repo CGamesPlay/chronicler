@@ -13,6 +13,8 @@ export const contentRoot = isDevelopment
 export const contentUrl = (path: string) => contentRoot + path;
 
 export const allPagesUrl = "/all-pages";
+export const searchUrl = (query?: string) =>
+  query ? `/search?q=${encodeURIComponent(query)}` : "/search";
 
 // Absolute URLs referenced by the main process
 export const chromeUrl = "app://main/html/chrome.html";

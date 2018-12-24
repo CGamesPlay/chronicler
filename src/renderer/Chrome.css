@@ -2,11 +2,25 @@ html {
   background: transparent;
 }
 
-.Chrome__controls {
+.Chrome {
   border-bottom: solid 1px hsl(0, 0%, 86%);
 }
 
-.tabs.is-fullwidth .Chrome__newTabButton {
+.Chrome__controls.field {
+  padding: 4px;
+  margin: 0;
+}
+
+.Chrome__tabs:not(:last-child) {
+  margin: 0;
+}
+
+.Chrome__tabs.tabs.is-toggle li:first-child a,
+.Chrome__tabs.tabs.is-toggle li:last-child a {
+  border-radius: 0;
+}
+
+.Chrome__tabs.is-fullwidth .Chrome__newTabButton {
   flex: 0;
   width: 2rem;
 }

@@ -61,11 +61,12 @@ export default class Chrome extends React.Component<{}, State> {
     const activeTab = this.activeTab || new Tab("null");
     return (
       <Resizable onResize={this.handleChromeResize}>
-        <div className="Chrome__controls">
+        <div className="Chrome">
           <Helmet>
             <body className="has-background-light" />
           </Helmet>
           <BrowserControls
+            className="Chrome__controls"
             url={activeTab.url}
             loading={activeTab.loadFraction < 1}
             canNavigateBack={activeTab.canNavigateBack}
@@ -79,7 +80,7 @@ export default class Chrome extends React.Component<{}, State> {
             onChangeNetworkMode={this.handleRequestNetworkMode}
             onRequestScrape={() => this.setState({ showScrapeToolbar: true })}
           />
-          <TabBar className="is-marginless">
+          <TabBar className="Chrome__tabs">
             {this.tabs.map(tab => (
               <TabBar.Tab key={tab.id} active={tab === this.activeTab}>
                 {tab.title || "Loading..."}
