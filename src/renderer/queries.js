@@ -19,9 +19,9 @@ export type FullTextResult = {
   title: string,
   // Extracted text from the document. Specific matches query terms are encoded
   // in this string:
-  // - "<b>" precedes the start of a specific match.
-  // - "</b>" follows the end of a specific match.
-  // - <b>...</b>" is inserted where content has been removed.
+  // - "\x02" precedes the start of a specific match.
+  // - "\x03" follows the end of a specific match.
+  // - "\t" is inserted where content has been removed.
   snippet: string,
 };
 
@@ -61,16 +61,11 @@ type FullTextResults = {
 export const fullTextSearch = (
   variables: FullTextQuery,
 ): Promise<FullTextResults> => {
-  return Promise.resolve({
-    results: [
-      {
-        pageId: 0,
-        title: "There's no place like localhost",
-        url: "http://vcap.me",
-        snippet: "lorem ipsum dolor <b>foo bar baz</b> sit amet",
-      },
-    ],
-    hasMore: false,
-    cursor: "abc123",
+  return sendRequest({ query: "fullTextSearch", variables }).then(results => {
+    return {
+      results,
+      hasMore: false,
+      cursor: "abc123",
+    };
   });
 };

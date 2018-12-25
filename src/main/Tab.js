@@ -101,6 +101,12 @@ class PageTracker {
       this.archive.setPageTitle(id, title);
     });
   }
+
+  updateFullText(text: string) {
+    this.currentPageId.then(id => {
+      this.archive.setPageFullText(id, text);
+    });
+  }
 }
 
 export default class Tab extends EventEmitter {
@@ -214,6 +220,12 @@ export default class Tab extends EventEmitter {
 
   handleStopLoading = () => {
     this.emit(TAB_UPDATE, this.toJSON());
+    const activePage = this.activePage;
+    if (activePage) {
+      this.executeJavaScript("document.body.innerText").then(text =>
+        activePage.updateFullText(text),
+      );
+    }
   };
 
   handleDomReady = (event: any) => {
@@ -315,7 +327,11 @@ export default class Tab extends EventEmitter {
           if (!this.ipcHandler) return Promise.reject("no IPC handler");
           return this.ipcHandler(request);
         })
-        .then(data => advanceQueue({ data }), error => advanceQueue({ error }))
+        .then(
+          data => advanceQueue({ data }),
+          error =>
+            advanceQueue({ error: { ...error, message: error.message } }),
+        )
         .then(handleIpcRequest);
     };
     advanceQueue(null).then(handleIpcRequest);

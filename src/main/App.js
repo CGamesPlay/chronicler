@@ -243,6 +243,8 @@ export default class App extends EventEmitter {
   handleContentIpc = (message: any): Promise<any> => {
     if (message.query === "getPages") {
       return this.archive.getPages();
+    } else if (message.query === "fullTextSearch") {
+      return this.archive.fullTextSearch(message.variables);
     } else {
       return Promise.reject("unknown query " + message.query);
     }

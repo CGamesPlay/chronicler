@@ -54,9 +54,12 @@ export default class UrlBar extends React.PureComponent<Props, State> {
     if (inputEl) {
       const typedUrl = inputEl.value;
       let parsedUrl;
-      try {
-        parsedUrl = parseUrl(typedUrl).toString();
-      } catch (_) {
+      if (/^[^ ]+\.[^ ]+$/.test(typedUrl)) {
+        try {
+          parsedUrl = parseUrl(typedUrl).toString();
+        } catch (_) {}
+      }
+      if (!parsedUrl) {
         parsedUrl = contentUrl(searchUrl(typedUrl));
       }
       if (this.props.onChangeUrl) {

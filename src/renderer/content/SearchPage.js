@@ -7,13 +7,36 @@ import { fullTextSearch, type FullTextResult } from "../queries";
 import Query from "../Query";
 import { Layout, NonIdealState } from "../components";
 
+const snippetHighlight = /\x02(.*)\x03/g;
+
+const renderSnippet = (
+  input: string,
+  highlighter: string => React.Node,
+): React.Node => {
+  const parts = [];
+  let i = 0;
+  while (i < input.length) {
+    snippetHighlight.lastIndex = i;
+    const match = snippetHighlight.exec(input);
+    if (!match) {
+      parts.push(input.slice(i));
+      break;
+    } else {
+      parts.push(input.substring(i, match.index).replace(/\t/g, "..."));
+      parts.push(highlighter(match[1]));
+      i = match.index + match[0].length;
+    }
+  }
+  return React.createElement(React.Fragment, {}, ...parts);
+};
+
 type SearchResultsProps = {
   query: string,
   results: Array<FullTextResult>,
 };
 
 const SearchResults = ({ query, results }: SearchResultsProps) => {
-  if (results.length === 0) {
+  if (!results || results.length === 0) {
     return (
       <NonIdealState
         title="No results"
@@ -28,10 +51,9 @@ const SearchResults = ({ query, results }: SearchResultsProps) => {
           <h5 className="title is-5 is-marginless">
             <a href={result.url}>{result.title}</a>
           </h5>
-          <div
-            className="content"
-            dangerouslySetInnerHTML={{ __html: result.snippet }}
-          />
+          <div className="content">
+            {renderSnippet(result.snippet, s => <b>{s}</b>)}
+          </div>
         </div>
       ))}
     </div>

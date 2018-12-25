@@ -174,8 +174,57 @@ export default class Archive {
       .then(p => p.$query(this.db).patch({ title }));
   }
 
+  setPageFullText(id: number, text: string): Promise<mixed> {
+    return this.db("pages_ft")
+      .where({ rowid: id })
+      .count("* as known")
+      .first()
+      .then(({ known }) => {
+        if (known > 0) {
+          return this.db("pages_ft")
+            .where({ rowid: id })
+            .update({ text });
+        } else {
+          return this.db("pages_ft").insert({ rowid: id, text });
+        }
+      });
+  }
+
   getPages(): Promise<Page> {
     return Page.query(this.db).orderBy("id", "desc");
+  }
+
+  fullTextSearch({ query }: any): Promise<mixed> {
+    const escapedQuery = query.replace(/\W/g, " ");
+    return this.db("pages_ft")
+      .select([
+        "rowid",
+        this.db.raw(
+          "snippet(pages_ft, -1, '\x02', '\x03', '\t', 64) as snippet",
+        ),
+        this.db.raw("bm25(pages_ft) as bm25"),
+      ])
+      .whereRaw("text MATCH ?", escapedQuery)
+      .then(matches => {
+        const matchById = {};
+        matches.forEach(match => (matchById[match.rowid] = match));
+        return Page.query(this.db)
+          .whereIn("id", matches.map(m => m.rowid))
+          .then(pages =>
+            pages
+              .map(page => ({
+                page,
+                match: matchById[page.id],
+              }))
+              .sort((a, b) => a.match.bm25 - b.match.bm25)
+              .map(({ page, match }) => ({
+                pageId: page.id,
+                url: page.url,
+                title: page.title,
+                snippet: match.snippet,
+              })),
+          );
+      });
   }
 
   findReplay(url: string, method: string): Promise<?Recording> {

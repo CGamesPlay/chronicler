@@ -49,6 +49,7 @@ const initialMigration = (db: Knex) => {
       table.timestamp("updatedAt").notNullable();
       table.index(["url", "method"]);
     }),
+    db.schema.raw(`CREATE VIRTUAL TABLE pages_ft USING fts5 ( text )`),
   ]);
 };
 
