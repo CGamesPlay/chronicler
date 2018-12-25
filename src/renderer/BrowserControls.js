@@ -8,6 +8,7 @@ type NetworkMode = "record" | "replay" | "passthrough";
 
 type Props = {
   className?: string,
+  homeUrl?: string,
   url: string,
   loading: boolean,
   canNavigateBack: boolean,
@@ -23,6 +24,12 @@ type Props = {
 };
 
 export default class BrowserControls extends React.Component<Props> {
+  handleClickHome = () => {
+    if (!this.props.onChangeUrl) return;
+    if (!this.props.homeUrl) return;
+    this.props.onChangeUrl(this.props.homeUrl);
+  };
+
   handleToggleNetworkMode = () => {
     if (!this.props.onChangeNetworkMode) return;
     switch (this.props.networkMode) {
@@ -38,47 +45,72 @@ export default class BrowserControls extends React.Component<Props> {
 
   render() {
     return (
-      <div className={classnames(this.props.className, "field is-grouped")}>
-        <div className="control has-addons">
-          <button
-            className="button"
-            disabled={!this.props.canNavigateBack}
-            onClick={this.props.onNavigateBack}
-          >
-            Back
-          </button>
-          <button
-            className="button"
-            disabled={!this.props.canNavigateForward}
-            onClick={this.props.onNavigateForward}
-          >
-            Forward
-          </button>
-          <button
-            className="button"
-            onClick={
-              this.props.loading ? this.props.onStop : this.props.onReload
-            }
-          >
-            {this.props.loading ? "Stop" : "Reload"}
-          </button>
+      <div
+        className={classnames(this.props.className, "columns is-variable is-1")}
+      >
+        <div className="column is-narrow">
+          <div className="field has-addons">
+            {this.props.homeUrl && (
+              <p className="control">
+                <button className="button" onClick={this.handleClickHome}>
+                  Home
+                </button>
+              </p>
+            )}
+            <p className="control">
+              <button
+                className="button"
+                disabled={!this.props.canNavigateBack}
+                onClick={this.props.onNavigateBack}
+              >
+                Back
+              </button>
+            </p>
+            <p className="control">
+              <button
+                className="button"
+                disabled={!this.props.canNavigateForward}
+                onClick={this.props.onNavigateForward}
+              >
+                Forward
+              </button>
+            </p>
+            <p className="control">
+              <button
+                className="button"
+                onClick={
+                  this.props.loading ? this.props.onStop : this.props.onReload
+                }
+              >
+                {this.props.loading ? "Stop" : "Reload"}
+              </button>
+            </p>
+          </div>
         </div>
-        <UrlBar
-          className="control is-expanded"
-          url={this.props.url}
-          onChangeUrl={this.props.onChangeUrl}
-        />
-        <div className="control has-addons">
-          <button className="button" onClick={this.handleToggleNetworkMode}>
-            {this.props.networkMode === "record"
-              ? "Recording"
-              : this.props.networkMode === "replay"
-                ? "Offline"
-                : "Not Recording"}
-          </button>
-          <button className="button" onClick={this.props.onRequestScrape}>
-            Scrape
-          </button>
+        <div className="column">
+          <UrlBar
+            className="control is-expanded"
+            url={this.props.url}
+            onChangeUrl={this.props.onChangeUrl}
+          />
+        </div>
+        <div className="column is-narrow">
+          <div className="field has-addons">
+            <p className="control">
+              <button className="button" onClick={this.handleToggleNetworkMode}>
+                {this.props.networkMode === "record"
+                  ? "Recording"
+                  : this.props.networkMode === "replay"
+                    ? "Offline"
+                    : "Not Recording"}
+              </button>
+            </p>
+            <p className="control">
+              <button className="button" onClick={this.props.onRequestScrape}>
+                Scrape
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     );

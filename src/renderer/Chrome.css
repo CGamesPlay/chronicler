@@ -6,9 +6,15 @@ html {
   border-bottom: solid 1px hsl(0, 0%, 86%);
 }
 
-.Chrome__controls.field {
+.Chrome__controls.columns {
   padding: 4px;
-  margin: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.Chrome__controls .column {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .Chrome__tabs:not(:last-child) {

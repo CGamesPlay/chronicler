@@ -7,6 +7,8 @@ import { fullTextSearch, type FullTextResult } from "../queries";
 import Query from "../Query";
 import { Layout, NonIdealState } from "../components";
 
+import "./SearchPage.css";
+
 const snippetHighlight = /\x02(.*)\x03/g;
 
 const renderSnippet = (
@@ -30,35 +32,19 @@ const renderSnippet = (
   return React.createElement(React.Fragment, {}, ...parts);
 };
 
-type SearchResultsProps = {
-  query: string,
-  results: Array<FullTextResult>,
+type SearchResultProps = {
+  result: FullTextResult,
 };
 
-const SearchResults = ({ query, results }: SearchResultsProps) => {
-  if (!results || results.length === 0) {
-    return (
-      <NonIdealState
-        title="No results"
-        description="None of the pages you have saved match your query."
-      />
-    );
-  }
-  return (
-    <div>
-      {results.map((result, i) => (
-        <div key={i}>
-          <h5 className="title is-5 is-marginless">
-            <a href={result.url}>{result.title}</a>
-          </h5>
-          <div className="content">
-            {renderSnippet(result.snippet, s => <b>{s}</b>)}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+const SearchResult = ({ result }: SearchResultProps) => (
+  <div className="SearchPage__result">
+    <h5 className="title is-5 is-marginless">
+      <a href={result.url}>{result.title}</a>
+    </h5>
+    <p className="has-text-grey">{result.url}</p>
+    <p className="content">{renderSnippet(result.snippet, s => <b>{s}</b>)}</p>
+  </div>
+);
 
 type Props = {
   location: Location,
@@ -69,12 +55,29 @@ export default class SearchPage extends React.Component<Props> {
     const query = this.searchQuery();
     return (
       <Layout title="Search Results">
+        <p className="subtitle is-5">
+          Results for: <strong>{query}</strong>
+        </p>
         {query ? (
           <Query runQuery={fullTextSearch} variables={{ query, first: 50 }}>
             {({ data, error, isLoading }) => {
               if (isLoading) return <div>Loading...</div>;
               if (!data) return <div>{JSON.stringify(error)}</div>;
-              return <SearchResults query={query} results={data.results} />;
+              if (!data.results || data.results.length === 0) {
+                return (
+                  <NonIdealState
+                    title="No results"
+                    description="None of the pages you have saved match your query."
+                  />
+                );
+              }
+              return (
+                <div>
+                  {data.results.map((result, i) => (
+                    <SearchResult key={i} result={result} />
+                  ))}
+                </div>
+              );
             }}
           </Query>
         ) : (

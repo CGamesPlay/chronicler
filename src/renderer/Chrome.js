@@ -19,6 +19,7 @@ import {
   type ScrapeConfig,
   type ScrapeStatus,
 } from "common/events";
+import { newTabUrl } from "common/urls";
 import { ModalToolbar, Resizable, TabBar } from "./components";
 import Tab from "./Tab";
 import BrowserControls from "./BrowserControls";
@@ -67,6 +68,7 @@ export default class Chrome extends React.Component<{}, State> {
           </Helmet>
           <BrowserControls
             className="Chrome__controls"
+            homeUrl={newTabUrl}
             url={activeTab.url}
             loading={activeTab.loadFraction < 1}
             canNavigateBack={activeTab.canNavigateBack}

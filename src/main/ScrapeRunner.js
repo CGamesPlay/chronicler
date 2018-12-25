@@ -89,7 +89,7 @@ export default class ScrapeRunner {
   advanceQueue(tab: Tab): Promise<mixed> {
     if (this.stopping) {
       if (this.notifyStopped) this.notifyStopped();
-      return Promise.reject(new Error("Graceful shutdown"));
+      return Promise.resolve(undefined);
     }
     return this.waitForPage(tab)
       .then(() => this.examinePage(tab))
