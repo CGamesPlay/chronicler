@@ -121,6 +121,9 @@ export default class Tab extends EventEmitter {
   view: BrowserView;
   activePage: ?PageTracker;
   ipcHandler: ?IpcHandler;
+  // Sometimes load failures happen back-to-back, we want to only handle it
+  // onces.
+  handlingLoadFailure: boolean;
 
   constructor(app: App, id: string) {
     super();
@@ -285,9 +288,12 @@ export default class Tab extends EventEmitter {
     error: string,
     url: string,
   ) => {
+    if (this.handlingLoadFailure) return;
+    this.handlingLoadFailure = true;
     // The passed URL is the actual page that failed to load, but in the page is
     // a chrome-error URL.
     event.sender.executeJavaScript("window.location.href").then(location => {
+      this.handlingLoadFailure = false;
       if (location !== chromeErrorUrl) return;
       this.activePage = null;
       getErrorPage()

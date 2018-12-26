@@ -2,7 +2,15 @@
 import { format as formatUrl } from "url";
 import * as path from "path";
 import EventEmitter from "events";
-import { BrowserWindow, BrowserView, ipcMain, session } from "electron";
+import {
+  app,
+  dialog,
+  BrowserWindow,
+  BrowserView,
+  Menu,
+  ipcMain,
+  session,
+} from "electron";
 
 import {
   CHROME_MESSAGE,
@@ -41,7 +49,65 @@ const protocols = {
 };
 
 const isDevelopment = process.env.NODE_ENV !== "production";
-const dbFilename = isDevelopment ? "test.db" : ":memory:";
+
+const menuTemplate = [
+  {
+    label: "Edit",
+    submenu: [
+      { role: "undo" },
+      { role: "redo" },
+      { type: "separator" },
+      { role: "cut" },
+      { role: "copy" },
+      { role: "paste" },
+      { role: "pasteandmatchstyle" },
+      { role: "delete" },
+      { role: "selectall" },
+    ],
+  },
+  {
+    role: "window",
+    submenu: [{ role: "minimize" }, { role: "close" }],
+  },
+  {
+    role: "help",
+    submenu: [],
+  },
+];
+
+if (process.platform === "darwin") {
+  menuTemplate.unshift({
+    label: appName,
+    submenu: [
+      { role: "about" },
+      { type: "separator" },
+      { role: "services" },
+      { type: "separator" },
+      { role: "hide" },
+      { role: "hideothers" },
+      { role: "unhide" },
+      { type: "separator" },
+      { role: "quit" },
+    ],
+  });
+  // Edit menu
+  menuTemplate[1].submenu.push(
+    { type: "separator" },
+    {
+      label: "Speech",
+      submenu: [{ role: "startspeaking" }, { role: "stopspeaking" }],
+    },
+  );
+
+  // Window menu
+  menuTemplate[2].submenu = [
+    { role: "close" },
+    { role: "minimize" },
+    { role: "zoom" },
+    { type: "separator" },
+    { role: "front" },
+  ];
+}
 
 export default class App extends EventEmitter {
   id: string;
@@ -65,46 +131,65 @@ export default class App extends EventEmitter {
     this.session = session.fromPartition(this.id);
     this.isChangingNetworkMode = false;
 
-    Archive.create(dbFilename).then(archive => {
-      this.archive = archive;
-      const handlers = {};
-      Object.keys(protocols).forEach(scheme => {
-        handlers[scheme] = new protocols[scheme]();
+    const menu = Menu.buildFromTemplate(menuTemplate);
+    Menu.setApplicationMenu(menu);
+
+    const dbFilename = isDevelopment
+      ? "test.db"
+      : path.join(app.getPath("userData"), "default.db");
+
+    Archive.create(dbFilename)
+      .then(archive => {
+        this.archive = archive;
+        const handlers = {};
+        Object.keys(protocols).forEach(scheme => {
+          handlers[scheme] = new protocols[scheme]();
+        });
+        const persister = new ArchivePersister(archive);
+        this.networkAdapter = new NetworkAdapter(handlers, persister);
+        this.requestConnector = new ElectronRequestConnector(
+          this.session,
+          this.networkAdapter,
+        );
+
+        this.window = new BrowserWindow({
+          title: appName,
+          show: false,
+          width: 1200,
+          height: 900,
+          webPreferences: {
+            nativeWindowOpen: true,
+          },
+        });
+        this.window.webContents.toggleDevTools = function() {
+          if (this.isDevToolsOpened()) {
+            this.closeDevTools();
+          } else {
+            this.openDevTools({ mode: "detach" });
+          }
+        };
+
+        this.window.on("closed", () => {
+          this.window = null;
+          this.close();
+          this.emit("closed");
+        });
+
+        ipcMain.on(CHROME_MESSAGE, this.handleChromeMessage);
+
+        this.window.loadURL(chromeUrl);
+      })
+      .catch(err => {
+        dialog.showMessageBox(
+          {
+            type: "error",
+            buttons: ["Quit"],
+            message: "Unable to open database.",
+            detail: err.toString(),
+          },
+          () => app.exit(1),
+        );
       });
-      const persister = new ArchivePersister(archive);
-      this.networkAdapter = new NetworkAdapter(handlers, persister);
-      this.requestConnector = new ElectronRequestConnector(
-        this.session,
-        this.networkAdapter,
-      );
-
-      this.window = new BrowserWindow({
-        title: appName,
-        show: false,
-        width: 1200,
-        height: 900,
-        webPreferences: {
-          nativeWindowOpen: true,
-        },
-      });
-      this.window.webContents.toggleDevTools = function() {
-        if (this.isDevToolsOpened()) {
-          this.closeDevTools();
-        } else {
-          this.openDevTools({ mode: "detach" });
-        }
-      };
-
-      this.window.on("closed", () => {
-        this.window = null;
-        this.close();
-        this.emit("closed");
-      });
-
-      ipcMain.on(CHROME_MESSAGE, this.handleChromeMessage);
-
-      this.window.loadURL(chromeUrl);
-    });
   }
 
   close() {
@@ -134,16 +219,12 @@ export default class App extends EventEmitter {
     return this.networkAdapter.isRecording();
   }
 
-  startRecordingSession(): Promise<ArchivePersister.RecordingSession> {
-    return this.networkAdapter.startRecordingSession().then(session => {
-      this.recordingSession = (session: any);
-      return this.recordingSession;
-    });
+  startRecordingSession(): Promise<mixed> {
+    return this.handleRequestNetworkMode({ mode: "record" });
   }
 
   finishRecordingSession() {
-    this.recordingSession = null;
-    return this.networkAdapter.finishRecordingSession();
+    return this.handleRequestNetworkMode({ mode: "replay" });
   }
 
   handleChromeMessage = (event: any, data: ChromeMessageData) => {
@@ -200,12 +281,13 @@ export default class App extends EventEmitter {
     });
   }
 
-  handleRequestNetworkMode({ mode }: any) {
-    if (this.isChangingNetworkMode) return;
+  handleRequestNetworkMode({ mode }: any): Promise<mixed> {
+    if (this.isChangingNetworkMode) Promise.resolve(null);
     this.isChangingNetworkMode = true;
     return Promise.resolve(undefined)
       .then(() => {
         if (mode !== "record" && this.networkAdapter.isRecording()) {
+          this.recordingSession = null;
           return this.networkAdapter.finishRecordingSession();
         }
       })
@@ -213,8 +295,9 @@ export default class App extends EventEmitter {
         switch (mode) {
           case "record":
             if (this.networkAdapter.isRecording()) return;
-            // Refresh the current page to kick off the recording
-            return this.startRecordingSession().then(() => {
+            return this.networkAdapter.startRecordingSession().then(session => {
+              this.recordingSession = (session: any);
+              // Refresh the current page to kick off the recording
               if (this.activeTab) this.activeTab.reload();
             });
           case "replay":

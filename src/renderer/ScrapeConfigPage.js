@@ -72,9 +72,9 @@ export default class ScrapeConfigPage extends React.Component<{}> {
                 <h3 className="title is-3">Scrape Site</h3>
                 <div className="content">
                   <p>
-                    This dialog allows you to configure a scraper to perform an
-                    automatic download of an entire web site. The scraper
-                    performs these steps:
+                    This dialog allows you to configure Chronicler to
+                    automatically download an entire web site. Chronicler will
+                    perform these steps:
                   </p>
                   <ol>
                     <li>Start a new recording session.</li>
@@ -97,7 +97,7 @@ export default class ScrapeConfigPage extends React.Component<{}> {
                     <Field className="input" name="firstPage" />
                   </div>
                   <div className="column is-size-7 content">
-                    <p>The scraper will start from this URL.</p>
+                    <p>Chronicler will start from this URL.</p>
                   </div>
                 </div>
                 <label className="label">URL prefixes</label>
@@ -115,7 +115,7 @@ export default class ScrapeConfigPage extends React.Component<{}> {
                       Only links that point to URLs that start with one of these
                       will be followed. Additionally, if a followed link
                       redirects to a page that doesn't start with one of these
-                      prefixes, the scraper will not follow any of the links on
+                      prefixes, Chronicler will not follow any of the links on
                       that page. Put a single URL prefix on each line.
                     </p>
                     <p>
@@ -150,7 +150,7 @@ export default class ScrapeConfigPage extends React.Component<{}> {
                   </div>
                   <div className="column is-size-7 content">
                     <p>
-                      The scraper will only click on links that match this XPath
+                      Chronicler will only click on links that match this XPath
                       selector and point to a URL that matches one of the
                       prefixes. Generally, the default value is fine, but you
                       might want to customize this to speed up a scrape. Some

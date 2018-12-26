@@ -12,6 +12,7 @@ export const contentRoot = isDevelopment
   : "app://main/html";
 export const contentUrl = (path: string) => contentRoot + path;
 
+export const welcomeUrl = "/welcome";
 export const allPagesUrl = "/all-pages";
 export const searchUrl = (query?: string) =>
   query ? `/search?q=${encodeURIComponent(query)}` : "/search";

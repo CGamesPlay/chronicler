@@ -19,4 +19,13 @@ if (
     }
   };
   window.module = {};
+} else {
+  // Due to a bug in electron's BrowserView module, _blank links result in an
+  // invisible, non-interactable, non-closable window when clicked. So we kill
+  // all _blank links to avoid the issue.
+  window.addEventListener("click", e => {
+    if (e.target.getAttribute("target") === "_blank") {
+      e.target.removeAttribute("target");
+    }
+  });
 }

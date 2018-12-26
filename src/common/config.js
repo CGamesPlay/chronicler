@@ -1,3 +1,3 @@
 // @flow
 
-export const appName = "DocBrowser";
+export const appName = "Chronicler";

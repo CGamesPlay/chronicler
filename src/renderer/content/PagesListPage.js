@@ -1,6 +1,8 @@
 // @flow
 import * as React from "react";
+import { Redirect } from "react-router-dom";
 
+import { welcomeUrl } from "common/urls";
 import { queryPages } from "../queries";
 import Query from "../Query";
 import { Layout, NonIdealState, Timestamp } from "../components";
@@ -14,12 +16,7 @@ const PagesListPage = () => (
         if (isLoading) return <div>loading...</div>;
         if (!data) return <div>{JSON.stringify(error)}</div>;
         if (data.pages.length == 0) {
-          return (
-            <NonIdealState
-              title="No pages saved"
-              description="There are no pages currently saved for offline viewing. After you record some pages, they will appear here."
-            />
-          );
+          return <Redirect to={welcomeUrl} />;
         }
         return (
           <table className="table is-fullwidth">
