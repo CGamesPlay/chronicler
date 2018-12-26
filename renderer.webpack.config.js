@@ -5,11 +5,12 @@ module.exports = {
   target: "web",
   output: {
     // This fixes the problem of relative asset paths in the HTML
-    publicPath: "/",
+    publicPath: "app://main/",
   },
   devServer: {
     historyApiFallback: {
       rewrites: [{ from: /^\/html\/.*/, to: "/index.html" }],
     },
+    publicPath: "/",
   },
 };

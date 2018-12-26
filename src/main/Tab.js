@@ -7,7 +7,7 @@ import { TAB_UPDATE } from "common/events";
 import { contentRoot } from "common/urls";
 import type App from "./App";
 import { Archive } from "./archive";
-import errorPage from "./errorPage";
+import getErrorPage from "./getErrorPage";
 
 declare var __static: string;
 
@@ -278,19 +278,29 @@ export default class Tab extends EventEmitter {
     error: string,
     url: string,
   ) => {
+    // The passed URL is the actual page that failed to load, but in the page is
+    // a chrome-error URL.
     event.sender.executeJavaScript("window.location.href").then(location => {
       if (location !== chromeErrorUrl) return;
       this.activePage = null;
-      const { css, title, html } = errorPage(code, error, url);
-      event.sender.insertCSS(css);
-      event.sender
-        .executeJavaScript(
-          `document.title = ${JSON.stringify(title)};
-          document.body.innerHTML = ${JSON.stringify(html)};
-          new Promise(function(resolve) { window.resolveError = resolve; });`,
-        )
-        .then(ret => {
-          if (ret === "start-recording") {
+      getErrorPage()
+        .then(html => {
+          const js = `
+            window.chromeErrorUrl = ${JSON.stringify(url)};
+            window.chromeErrorCode = ${code};
+            window.chromeErrorString = ${JSON.stringify(error)};
+            document.open("text/html", "replace");
+            document.write(${JSON.stringify(html)});
+            document.close();
+            new Promise(function(resolve) {
+              window.chromeErrorResolve = resolve;
+            });`;
+          return event.sender.executeJavaScript(js);
+        })
+        .then(({ command, payload }) => {
+          if (command === "open-url") {
+            this.loadURL(payload);
+          } else if (command === "start-recording") {
             this.app.handleRequestNetworkMode({ mode: "record" });
           } else {
             event.sender.reload();

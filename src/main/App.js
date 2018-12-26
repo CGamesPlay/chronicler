@@ -37,7 +37,8 @@ const protocols = {
   https: HttpsProtocolHandler,
 };
 
-const dbFilename = "test.db";
+const isDevelopment = process.env.NODE_ENV !== "production";
+const dbFilename = isDevelopment ? "test.db" : ":memory:";
 
 export default class App extends EventEmitter {
   id: string;
