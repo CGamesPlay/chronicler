@@ -8,7 +8,7 @@ import * as urls from "common/urls";
 
 import { PagesListPage, SearchPage, FourOhFourPage } from "./content";
 
-const CollectionBrowser = () => (
+const ContentPages = () => (
   <Router basename="/html/">
     <div>
       <Helmet defaultTitle={appName}>
@@ -23,4 +23,4 @@ const CollectionBrowser = () => (
   </Router>
 );
 
-export default CollectionBrowser;
+export default ContentPages;

@@ -9,22 +9,31 @@ import * as urls from "common/urls";
 
 import Chrome from "./Chrome";
 import ErrorPage from "./ErrorPage";
-import CollectionBrowser from "./CollectionBrowser";
+import ContentPages from "./ContentPages";
 
-// We treat each of these as a completely separate application, so we don't
-// bother with a dynamic router at this level.
-if (window.location.protocol === "chrome-error:") {
-  ReactDOM.render(
-    <ErrorPage
-      url={window.chromeErrorUrl}
-      code={window.chromeErrorCode}
-      error={window.chromeErrorString}
-      onResolve={window.chromeErrorResolve}
-    />,
-    document.getElementById("app"),
-  );
-} else if (window.location.href === urls.chromeUrl) {
-  ReactDOM.render(<Chrome />, document.getElementById("app"));
-} else {
-  ReactDOM.render(<CollectionBrowser />, document.getElementById("app"));
+const render = () => {
+  let root;
+
+  // We treat each of these as a completely separate application, so we don't
+  // bother with a dynamic router at this level.
+  if (window.location.protocol === "chrome-error:") {
+    root = (
+      <ErrorPage
+        url={window.chromeErrorUrl}
+        code={window.chromeErrorCode}
+        error={window.chromeErrorString}
+        onResolve={window.chromeErrorResolve}
+      />
+    );
+  } else if (window.location.href === urls.chromeUrl) {
+    root = <Chrome />;
+  } else {
+    root = <ContentPages />;
+  }
+  ReactDOM.render(root, document.getElementById("app"));
+};
+
+render();
+if (module.hot) {
+  module.hot.accept(["./Chrome", "./ErrorPage", "./ContentPages"], render);
 }
