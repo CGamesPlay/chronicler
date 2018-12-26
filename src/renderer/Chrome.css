@@ -28,11 +28,19 @@ html {
 
 .Chrome__tabs.is-fullwidth .Chrome__newTabButton {
   flex: 0;
+  min-width: auto;
+}
+
+.Chrome__tabs li:not(.is-active) a {
+  border-bottom-color: transparent;
 }
 
 .tabs .Chrome__newTabButton a {
   width: 2rem;
   height: 2rem;
-  border-bottom-color: transparent;
   border-right-color: transparent;
+}
+
+.tabs .Chrome__newTabButton a > span:first-child {
+  overflow: visible;
 }

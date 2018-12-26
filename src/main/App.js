@@ -13,6 +13,8 @@ import {
   SCRAPE_START,
   SCRAPE_STOP,
   SCRAPE_STATUS,
+  TAB_OPEN,
+  TAB_CLOSE,
   TAB_UPDATE,
   TAB_FOCUS,
   TAB_NAVIGATE,
@@ -117,6 +119,7 @@ export default class App extends EventEmitter {
     this.tabs.push(tab);
     this.activeTab = tab;
     tab.on(TAB_UPDATE, this.handleTabUpdate);
+    tab.on(TAB_CLOSE, this.handleTabClose);
     tab.loadURL(newTabUrl);
     tab.setIpcHandler(this.handleContentIpc);
     this.updateActiveTab();
@@ -133,11 +136,17 @@ export default class App extends EventEmitter {
         case NETWORK_MODE:
           return this.handleRequestNetworkMode(data.payload);
         case SCRAPE_START:
-          return this.handleStartScrape((data.payload: any));
+          return this.handleStartScrape(data.payload);
         case SCRAPE_STOP:
           return this.handleStopScrape();
+        case TAB_OPEN:
+          return this.newTab();
+        case TAB_CLOSE:
+          return this.handleRequestTabClose(data.payload);
         case TAB_UPDATE:
           return this.handleRequestTabUpdate(data.payload);
+        case TAB_FOCUS:
+          return this.handleFocusTab(data.payload);
         case TAB_NAVIGATE:
           return this.handleRequestTabNavigate(data.payload);
       }
@@ -219,10 +228,23 @@ export default class App extends EventEmitter {
     this.sendChromeMessage(SCRAPE_STATUS, status);
   };
 
+  handleRequestTabClose(data: any) {
+    const tab = this.tabs.find(t => t.id === data.id);
+    if (!tab) return;
+    tab.close();
+  }
+
   handleRequestTabUpdate(data: any) {
     const tab = this.tabs.find(t => t.id === data.id);
     if (!tab) return;
     tab.requestUpdate(data);
+  }
+
+  handleFocusTab(data: any) {
+    const tab = this.tabs.find(t => t.id === data.id);
+    if (!tab) return;
+    this.activeTab = tab;
+    this.updateActiveTab();
   }
 
   handleRequestTabNavigate(data: any) {
@@ -239,6 +261,14 @@ export default class App extends EventEmitter {
 
   handleTabUpdate = (data: any) => {
     this.sendChromeMessage(TAB_UPDATE, data);
+  };
+
+  handleTabClose = (data: any) => {
+    this.sendChromeMessage(TAB_CLOSE, data);
+    const idx = this.tabs.findIndex(t => t.id === data.id);
+    if (idx === -1) return;
+    const tab = this.tabs[idx];
+    this.tabs.splice(idx, 1);
   };
 
   handleContentIpc = (message: any): Promise<any> => {

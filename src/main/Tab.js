@@ -3,7 +3,7 @@ import { BrowserView, Menu } from "electron";
 import EventEmitter from "events";
 import * as path from "path";
 
-import { TAB_UPDATE } from "common/events";
+import { TAB_CLOSE, TAB_UPDATE } from "common/events";
 import { contentRoot } from "common/urls";
 import type App from "./App";
 import { Archive } from "./archive";
@@ -152,6 +152,16 @@ export default class Tab extends EventEmitter {
       this.handleInPageNavigation,
     );
     this.view.webContents.on("context-menu", this.handleContextMenu);
+  }
+
+  close() {
+    if (this.app.window.getBrowserView() === this.view) {
+      this.app.window.setBrowserView(null);
+    }
+    // There doesn't seem to be a way to gracefully close a BrowserView :-/
+    this.view.destroy();
+    this.emit(TAB_CLOSE, { id: this.id });
+    this.removeAllListeners();
   }
 
   attachView() {

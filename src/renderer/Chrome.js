@@ -13,6 +13,8 @@ import {
   SCRAPE_START,
   SCRAPE_STOP,
   SCRAPE_STATUS,
+  TAB_OPEN,
+  TAB_CLOSE,
   TAB_UPDATE,
   TAB_FOCUS,
   TAB_NAVIGATE,
@@ -84,12 +86,26 @@ export default class Chrome extends React.Component<{}, State> {
           />
           <TabBar className="Chrome__tabs">
             {this.tabs.map(tab => (
-              <TabBar.Tab key={tab.id} active={tab === this.activeTab}>
+              <TabBar.Tab
+                key={tab.id}
+                active={tab === this.activeTab}
+                onClose={() =>
+                  this.sendChromeMessage(TAB_CLOSE, { id: tab.id })
+                }
+                onClick={() =>
+                  this.sendChromeMessage(TAB_FOCUS, { id: tab.id })
+                }
+                showClose={this.tabs.length > 1}
+              >
                 {tab.title || "Loading..."}
               </TabBar.Tab>
             ))}
-            <TabBar.Tab className="Chrome__newTabButton">
-              <Icon size="small" icon="plus" />
+            <TabBar.Tab
+              className="Chrome__newTabButton"
+              onClick={() => this.sendChromeMessage(TAB_OPEN)}
+              showClose={false}
+            >
+              <Icon icon="plus" />
             </TabBar.Tab>
           </TabBar>
           {this.state.showScrapeToolbar && (
@@ -149,7 +165,9 @@ export default class Chrome extends React.Component<{}, State> {
   };
 
   handleChromeMessage = (event: string, data: ChromeMessageData) => {
-    if (data.type === TAB_UPDATE) {
+    if (data.type === TAB_CLOSE) {
+      this.handleTabClose(data.payload);
+    } else if (data.type === TAB_UPDATE) {
       this.handleTabUpdate(data.payload);
     } else if (data.type === TAB_FOCUS) {
       this.handleTabFocus(data.payload);
@@ -159,6 +177,18 @@ export default class Chrome extends React.Component<{}, State> {
       this.setState({ scrapeStatus: data.payload, showScrapeToolbar: true });
     }
   };
+
+  handleTabClose(data: any) {
+    let idx = this.tabs.findIndex(t => t.id === data.id);
+    if (idx === -1) return;
+    const tab = this.tabs[idx];
+    this.tabs.splice(idx, 1);
+    this.forceUpdate();
+    if (tab === this.activeTab) {
+      const nextTab = this.tabs[idx === this.tabs.length ? idx - 1 : idx];
+      this.sendChromeMessage(TAB_FOCUS, { id: nextTab.id });
+    }
+  }
 
   handleTabUpdate(data: any) {
     let tab = this.tabs.find(t => t.id === data.id);

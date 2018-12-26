@@ -1,0 +1,20 @@
+.tabs.is-fullwidth li {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.tabs li a span:last-child {
+  flex-grow: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabs li a .delete {
+  visibility: hidden;
+  margin-left: -6px;
+}
+
+.tabs li a:hover .delete {
+  visibility: visible;
+}

@@ -4,7 +4,7 @@ export const CHROME_MESSAGE = "CHROME_MESSAGE";
 
 export type ChromeMessageData = {
   type: string,
-  payload?: any,
+  payload: any,
 };
 
 export const CHROME_READY = "CHROME_READY";
@@ -13,6 +13,8 @@ export const NETWORK_MODE = "NETWORK_MODE";
 export const SCRAPE_START = "SCRAPE_START";
 export const SCRAPE_STOP = "SCRAPE_STOP";
 export const SCRAPE_STATUS = "SCRAPE_STATUS";
+export const TAB_OPEN = "TAB_OPEN";
+export const TAB_CLOSE = "TAB_CLOSE";
 export const TAB_UPDATE = "TAB_UPDATE";
 export const TAB_FOCUS = "TAB_FOCUS";
 export const TAB_NAVIGATE = "TAB_NAVIGATE";
