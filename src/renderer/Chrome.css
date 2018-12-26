@@ -28,5 +28,11 @@ html {
 
 .Chrome__tabs.is-fullwidth .Chrome__newTabButton {
   flex: 0;
+}
+
+.tabs .Chrome__newTabButton a {
   width: 2rem;
+  height: 2rem;
+  border-bottom-color: transparent;
+  border-right-color: transparent;
 }

@@ -1,4 +1,5 @@
 // @flow
+export { default as Icon } from "./Icon";
 export { default as Layout } from "./Layout";
 export { default as ModalToolbar } from "./ModalToolbar";
 export { default as NonIdealState } from "./NonIdealState";

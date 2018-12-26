@@ -2,6 +2,7 @@
 import * as React from "react";
 import classnames from "classnames";
 
+import { Icon } from "./components";
 import UrlBar from "./UrlBar";
 
 type NetworkMode = "record" | "replay" | "passthrough";
@@ -53,7 +54,7 @@ export default class BrowserControls extends React.Component<Props> {
             {this.props.homeUrl && (
               <p className="control">
                 <button className="button" onClick={this.handleClickHome}>
-                  Home
+                  <Icon icon="home" />
                 </button>
               </p>
             )}
@@ -63,7 +64,7 @@ export default class BrowserControls extends React.Component<Props> {
                 disabled={!this.props.canNavigateBack}
                 onClick={this.props.onNavigateBack}
               >
-                Back
+                <Icon icon="arrow-left" />
               </button>
             </p>
             <p className="control">
@@ -72,7 +73,7 @@ export default class BrowserControls extends React.Component<Props> {
                 disabled={!this.props.canNavigateForward}
                 onClick={this.props.onNavigateForward}
               >
-                Forward
+                <Icon icon="arrow-right" />
               </button>
             </p>
             <p className="control">
@@ -82,7 +83,7 @@ export default class BrowserControls extends React.Component<Props> {
                   this.props.loading ? this.props.onStop : this.props.onReload
                 }
               >
-                {this.props.loading ? "Stop" : "Reload"}
+                <Icon icon={this.props.loading ? "stop" : "sync-alt"} />
               </button>
             </p>
           </div>

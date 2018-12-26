@@ -2,6 +2,8 @@ import * as React from "react";
 import ReactDOM from "react-dom";
 
 import "bulma/css/bulma.css";
+import "@fortawesome/fontawesome-free/css/fontawesome.css";
+import "@fortawesome/fontawesome-free/css/solid.css";
 
 import * as urls from "common/urls";
 

@@ -20,7 +20,7 @@ import {
   type ScrapeStatus,
 } from "common/events";
 import { newTabUrl } from "common/urls";
-import { ModalToolbar, Resizable, TabBar } from "./components";
+import { Icon, ModalToolbar, Resizable, TabBar } from "./components";
 import Tab from "./Tab";
 import BrowserControls from "./BrowserControls";
 import ScrapeToolbar from "./ScrapeToolbar";
@@ -88,7 +88,9 @@ export default class Chrome extends React.Component<{}, State> {
                 {tab.title || "Loading..."}
               </TabBar.Tab>
             ))}
-            <TabBar.Tab className="Chrome__newTabButton">+</TabBar.Tab>
+            <TabBar.Tab className="Chrome__newTabButton">
+              <Icon size="small" icon="plus" />
+            </TabBar.Tab>
           </TabBar>
           {this.state.showScrapeToolbar && (
             <ScrapeToolbar
