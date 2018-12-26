@@ -18,34 +18,37 @@ import {
   TAB_UPDATE,
   TAB_FOCUS,
   TAB_NAVIGATE,
+  TAB_EXECUTE_JAVASCRIPT,
   type ScrapeConfig,
   type ScrapeStatus,
 } from "common/events";
-import { newTabUrl } from "common/urls";
+import { newTabUrl, scrapeConfigUrl } from "common/urls";
 import { Icon, ModalToolbar, Resizable, TabBar } from "./components";
 import Tab from "./Tab";
 import BrowserControls from "./BrowserControls";
-import ScrapeToolbar from "./ScrapeToolbar";
+import ScrapeStatusToolbar from "./ScrapeStatusToolbar";
 
 import "./Chrome.css";
 
 type State = {
   networkMode: "record" | "replay" | "passthrough",
-  showScrapeToolbar: boolean,
+  showScrapeStatus: boolean,
   scrapeStatus: ?ScrapeStatus,
 };
 
 export default class Chrome extends React.Component<{}, State> {
   state = {
     networkMode: "replay",
-    showScrapeToolbar: false,
+    showScrapeStatus: false,
     scrapeStatus: null,
   };
   chromeHeight: number = 0;
   tabs: Array<Tab> = [];
   activeTab: ?Tab;
+  scrapeConfigWindow: any;
 
   componentDidMount() {
+    window.chrome = this;
     ipcRenderer.on(CHROME_MESSAGE, this.handleChromeMessage);
     this.chromeHeight = (document.body: any).scrollHeight;
     this.sendChromeMessage(CHROME_RESIZE, { top: this.chromeHeight });
@@ -56,8 +59,11 @@ export default class Chrome extends React.Component<{}, State> {
     this.handleChromeResize();
   }
 
-  componentWillUnmont() {
+  componentWillUnmount() {
     ipcRenderer.removeListener(CHROME_MESSAGE, this.handleChromeMessage);
+    if (this.scrapeConfigWindow) {
+      this.scrapeConfigWindow.close();
+    }
   }
 
   render() {
@@ -82,7 +88,7 @@ export default class Chrome extends React.Component<{}, State> {
             onReload={this.handleReload}
             onStop={this.handleStop}
             onChangeNetworkMode={this.handleRequestNetworkMode}
-            onRequestScrape={() => this.setState({ showScrapeToolbar: true })}
+            onRequestScrape={this.handleShowScrapeConfig}
           />
           <TabBar className="Chrome__tabs">
             {this.tabs.map(tab => (
@@ -108,14 +114,12 @@ export default class Chrome extends React.Component<{}, State> {
               <Icon icon="plus" />
             </TabBar.Tab>
           </TabBar>
-          {this.state.showScrapeToolbar && (
-            <ScrapeToolbar
+          {this.state.showScrapeStatus && (
+            <ScrapeStatusToolbar
               status={this.state.scrapeStatus}
               onScrape={config => this.sendChromeMessage(SCRAPE_START, config)}
               onCancelScrape={config => this.sendChromeMessage(SCRAPE_STOP)}
-              onHide={() =>
-                this.setState({ showScrapeToolbar: false, scrapeStatus: null })
-              }
+              onHide={() => this.setState({ showScrapeStatus: false })}
             />
           )}
         </div>
@@ -125,6 +129,23 @@ export default class Chrome extends React.Component<{}, State> {
 
   sendChromeMessage(type: string, payload?: any) {
     ipcRenderer.send(CHROME_MESSAGE, { type, payload });
+  }
+
+  startScrape(config: any) {
+    this.sendChromeMessage(SCRAPE_START, config);
+    if (this.scrapeConfigWindow) {
+      this.scrapeConfigWindow.close();
+      this.scrapeConfigWindow = null;
+    }
+    this.setState({ showScrapeStatus: true, scrapeStatus: null });
+  }
+
+  executeJavaScriptInActiveTab(script: string) {
+    if (!this.activeTab) return;
+    this.sendChromeMessage(TAB_EXECUTE_JAVASCRIPT, {
+      id: this.activeTab.id,
+      script,
+    });
   }
 
   handleChromeResize = () => {
@@ -164,6 +185,21 @@ export default class Chrome extends React.Component<{}, State> {
     this.sendChromeMessage(NETWORK_MODE, { mode });
   };
 
+  handleShowScrapeConfig = () => {
+    if (this.scrapeConfigWindow && !this.scrapeConfigWindow.closed) {
+      // XXX - doesn't work
+      this.scrapeConfigWindow.focus();
+      return;
+    }
+    this.scrapeConfigWindow = window.open(scrapeConfigUrl, {
+      width: 800,
+      height: 600,
+    });
+    this.scrapeConfigWindow.addEventListener("close", () => {
+      this.scrapeConfigWindow = null;
+    });
+  };
+
   handleChromeMessage = (event: string, data: ChromeMessageData) => {
     if (data.type === TAB_CLOSE) {
       this.handleTabClose(data.payload);
@@ -174,7 +210,7 @@ export default class Chrome extends React.Component<{}, State> {
     } else if (data.type === NETWORK_MODE) {
       this.handleNetworkMode(data.payload);
     } else if (data.type === SCRAPE_STATUS) {
-      this.setState({ scrapeStatus: data.payload, showScrapeToolbar: true });
+      this.setState({ scrapeStatus: data.payload, showScrapeStatus: true });
     }
   };
 

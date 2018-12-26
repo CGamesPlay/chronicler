@@ -10,6 +10,7 @@ import * as urls from "common/urls";
 import Chrome from "./Chrome";
 import ErrorPage from "./ErrorPage";
 import ContentPages from "./ContentPages";
+import ScrapeConfigPage from "./ScrapeConfigPage";
 
 const render = () => {
   let root;
@@ -27,6 +28,8 @@ const render = () => {
     );
   } else if (window.location.href === urls.chromeUrl) {
     root = <Chrome />;
+  } else if (window.location.href === urls.scrapeConfigUrl) {
+    root = <ScrapeConfigPage />;
   } else {
     root = <ContentPages />;
   }
@@ -35,5 +38,8 @@ const render = () => {
 
 render();
 if (module.hot) {
-  module.hot.accept(["./Chrome", "./ErrorPage", "./ContentPages"], render);
+  module.hot.accept(
+    ["./Chrome", "./ErrorPage", "./ContentPages", "./ScrapeConfigPage"],
+    render,
+  );
 }

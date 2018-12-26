@@ -18,6 +18,7 @@ import {
   TAB_UPDATE,
   TAB_FOCUS,
   TAB_NAVIGATE,
+  TAB_EXECUTE_JAVASCRIPT,
   type ScrapeConfig,
   type ScrapeStatus,
 } from "common/events";
@@ -82,6 +83,9 @@ export default class App extends EventEmitter {
         show: false,
         width: 1200,
         height: 900,
+        webPreferences: {
+          nativeWindowOpen: true,
+        },
       });
       this.window.webContents.toggleDevTools = function() {
         if (this.isDevToolsOpened()) {
@@ -149,6 +153,8 @@ export default class App extends EventEmitter {
           return this.handleFocusTab(data.payload);
         case TAB_NAVIGATE:
           return this.handleRequestTabNavigate(data.payload);
+        case TAB_EXECUTE_JAVASCRIPT:
+          return this.handleTabExecuteJavaScript(data.payload);
       }
     }
   };
@@ -257,6 +263,12 @@ export default class App extends EventEmitter {
     } else if (data.offset === 0) {
       tab.reload();
     }
+  }
+
+  handleTabExecuteJavaScript(data: any) {
+    const tab = this.tabs.find(t => t.id === data.id);
+    if (!tab) return;
+    tab.executeJavaScript(data.script);
   }
 
   handleTabUpdate = (data: any) => {

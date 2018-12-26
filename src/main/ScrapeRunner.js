@@ -51,6 +51,11 @@ export default class ScrapeRunner {
     this.status.state = "running";
     return Promise.resolve(undefined)
       .then(() => {
+        if (activeTab.getURL() !== this.config.firstPage) {
+          activeTab.loadURL(this.config.firstPage);
+        }
+      })
+      .then(() => {
         if (this.app.networkAdapter.isRecording()) return;
         //return this.app.networkAdapter.startRecordingSession();
         return;
@@ -134,18 +139,25 @@ export default class ScrapeRunner {
           );
           const result = [];
           for (let i = 0; i < snap.snapshotLength; i++) {
-            result.push(snap.snapshotItem(i).getAttribute("href"));
+            let url = new URL(
+              snap.snapshotItem(i).getAttribute("href"),
+              document.baseURI,
+            );
+            url.hash = "";
+            result.push(url.href);
           }
           return result;
         }())`,
       )
       .then(allLinks => {
-        const newLinks = allLinks
-          .filter(link => this.config.rootUrls.find(r => link.startsWith(r)))
-          .filter(link => !this.allKnownPages.has(link));
+        const newLinks = allLinks.filter(link =>
+          this.config.rootUrls.find(r => link.startsWith(r)),
+        );
         newLinks.forEach(link => {
-          this.allKnownPages.add(link);
-          this.queue.push(link);
+          if (!this.allKnownPages.has(link)) {
+            this.allKnownPages.add(link);
+            this.queue.push(link);
+          }
         });
       });
   }
@@ -154,7 +166,8 @@ export default class ScrapeRunner {
   // finish.
   loadNextPage(tab: Tab): Promise<mixed> {
     const nextUrl = this.queue.shift();
-    this.status.pagesRemaining = this.queue.length;
+    // Add 1 for the now-loading page
+    this.status.pagesRemaining = this.queue.length + (nextUrl ? 1 : 0);
     if (!nextUrl) {
       this.status.state = "finished";
       this.report();

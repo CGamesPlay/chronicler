@@ -18,8 +18,10 @@ export const TAB_CLOSE = "TAB_CLOSE";
 export const TAB_UPDATE = "TAB_UPDATE";
 export const TAB_FOCUS = "TAB_FOCUS";
 export const TAB_NAVIGATE = "TAB_NAVIGATE";
+export const TAB_EXECUTE_JAVASCRIPT = "TAB_EXECUTE_JAVASCRIPT";
 
 export type ScrapeConfig = {
+  firstPage: string,
   // When scraping, only links to pages with URLs that start with one of these
   // will be followed. Additionally, if we happen to end up on a page outside of
   // a rootUrl, we won't examine its contents for more links.

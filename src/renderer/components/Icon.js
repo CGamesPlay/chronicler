@@ -6,13 +6,14 @@ type Props = {
   size: "xs" | "s" | "m" | "l",
   icon: string,
   label?: string,
+  className?: string,
 };
 
-const Icon = ({ size, icon, label }: Props) => {
+const Icon = ({ size, icon, label, className }: Props) => {
   const style = label ? { marginRight: 0 } : undefined;
   const iconEl = (
     <span
-      className={classnames("icon", {
+      className={classnames("icon", className, {
         "is-small": size === "xs",
         "is-medium": size === "m",
         "is-large": size === "l",

@@ -17,5 +17,6 @@ export const searchUrl = (query?: string) =>
   query ? `/search?q=${encodeURIComponent(query)}` : "/search";
 
 // Absolute URLs referenced by the main process
-export const chromeUrl = "app://main/html/chrome.html";
+export const chromeUrl = contentUrl("/chrome.html");
 export const newTabUrl = contentUrl(allPagesUrl);
+export const scrapeConfigUrl = contentUrl("/scrape-config.html");
