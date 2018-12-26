@@ -56,18 +56,21 @@ export default class ScrapeRunner {
         }
       })
       .then(() => {
-        if (this.app.networkAdapter.isRecording()) return;
-        //return this.app.networkAdapter.startRecordingSession();
-        return;
+        if (this.config.dryRun) return;
+        if (this.app.isRecording()) return;
+        return this.app.startRecordingSession();
       })
       .then(() => this.advanceQueue(activeTab))
       .then(() => {
+        if (!this.config.dryRun) {
+          return this.app.finishRecordingSession();
+        }
+      })
+      .then(() => {
         if (this.stopping) return;
-        //return this.app.networkAdapter.finishRecordingSession().then(() => {
         const activeTab = this.app.activeTab;
         if (!activeTab) return;
         activeTab.loadURL(contentUrl(allPagesUrl));
-        //});
       });
   }
 
@@ -85,6 +88,7 @@ export default class ScrapeRunner {
 
   // Send a report immediately
   report() {
+    this.status.pagesRemaining = this.queue.length;
     this.status.ppm = this.limiter.averageRate() * 60;
     this.reporter(this, this.status);
   }
@@ -166,8 +170,6 @@ export default class ScrapeRunner {
   // finish.
   loadNextPage(tab: Tab): Promise<mixed> {
     const nextUrl = this.queue.shift();
-    // Add 1 for the now-loading page
-    this.status.pagesRemaining = this.queue.length + (nextUrl ? 1 : 0);
     if (!nextUrl) {
       this.status.state = "finished";
       this.report();

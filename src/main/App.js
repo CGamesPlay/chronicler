@@ -49,7 +49,7 @@ export default class App extends EventEmitter {
   session: any;
   archive: Archive;
   networkAdapter: NetworkAdapter;
-  recordingSession: ArchivePersister.RecordingSession;
+  recordingSession: ?ArchivePersister.RecordingSession;
   requestConnector: ElectronRequestConnector;
   tabs: Array<Tab>;
   activeTab: ?Tab;
@@ -130,6 +130,22 @@ export default class App extends EventEmitter {
     this.sendChromeMessage(TAB_UPDATE, tab.toJSON());
   }
 
+  isRecording(): boolean {
+    return this.networkAdapter.isRecording();
+  }
+
+  startRecordingSession(): Promise<ArchivePersister.RecordingSession> {
+    return this.networkAdapter.startRecordingSession().then(session => {
+      this.recordingSession = (session: any);
+      return this.recordingSession;
+    });
+  }
+
+  finishRecordingSession() {
+    this.recordingSession = null;
+    return this.networkAdapter.finishRecordingSession();
+  }
+
   handleChromeMessage = (event: any, data: ChromeMessageData) => {
     if (event.sender === this.window.webContents) {
       switch (data.type) {
@@ -198,8 +214,7 @@ export default class App extends EventEmitter {
           case "record":
             if (this.networkAdapter.isRecording()) return;
             // Refresh the current page to kick off the recording
-            return this.networkAdapter.startRecordingSession().then(session => {
-              this.recordingSession = (session: any);
+            return this.startRecordingSession().then(() => {
               if (this.activeTab) this.activeTab.reload();
             });
           case "replay":

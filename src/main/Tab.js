@@ -247,14 +247,15 @@ export default class Tab extends EventEmitter {
 
   handleTitleUpdated = (_event: any, title: string) => {
     this.emit(TAB_UPDATE, this.toJSON());
-    if (this.app.networkAdapter.isRecording() && this.activePage) {
+    if (this.app.isRecording() && this.activePage) {
       this.activePage.trackTitleChange(title);
     }
   };
 
   handleNavigation = (_event: mixed, url: string, statusCode: number) => {
     if (
-      this.app.networkAdapter.isRecording() &&
+      this.app.isRecording() &&
+      this.app.recordingSession &&
       !this.app.networkAdapter.urlBypassesPersister(url) &&
       statusCode > 0
     ) {
@@ -270,11 +271,7 @@ export default class Tab extends EventEmitter {
   };
 
   handleInPageNavigation = (_event: any, url: string, isMainFrame: boolean) => {
-    if (
-      this.app.networkAdapter.isRecording() &&
-      isMainFrame &&
-      this.activePage
-    ) {
+    if (this.app.isRecording() && isMainFrame && this.activePage) {
       this.activePage.trackInPageNavigation(
         url,
         this.view.webContents.getTitle(),

@@ -6,6 +6,8 @@ import { Formik, Form, Field } from "formik";
 import type { ScrapeConfig } from "common/events";
 import { Icon } from "./components";
 
+const isDevelopment = process.env.NODE_ENV !== "production";
+
 export default class ScrapeConfigPage extends React.Component<{}> {
   handleSubmit = (values: any) => {
     const config = { ...values, rootUrls: values.rootUrls.split("\n") };
@@ -53,6 +55,7 @@ export default class ScrapeConfigPage extends React.Component<{}> {
       rootUrls: rootUrl,
       linkXpath: "//a",
       ppmLimit: 30,
+      dryRun: false,
     };
     return (
       <Formik
@@ -195,6 +198,26 @@ export default class ScrapeConfigPage extends React.Component<{}> {
                     </p>
                   </div>
                 </div>
+                {isDevelopment && (
+                  <>
+                    <label className="label">Debugging Settings</label>
+                    <div className="columns">
+                      <div className="column is-three-fifths">
+                        <label className="checkbox">
+                          <Field name="dryRun" type="checkbox" />
+                          {" Dry run"}
+                        </label>
+                      </div>
+                      <div className="column is-size-7 content">
+                        <p>
+                          During a dry run, the network adapter will be set to
+                          replay mode instead of record mode. This is useful for
+                          testing that the crawler is working properly.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div className="field">
                   <button className="button is-primary" type="submit">
                     Start

@@ -21,6 +21,7 @@ export const TAB_NAVIGATE = "TAB_NAVIGATE";
 export const TAB_EXECUTE_JAVASCRIPT = "TAB_EXECUTE_JAVASCRIPT";
 
 export type ScrapeConfig = {
+  // Load this page before starting the scrape.
   firstPage: string,
   // When scraping, only links to pages with URLs that start with one of these
   // will be followed. Additionally, if we happen to end up on a page outside of
@@ -32,6 +33,9 @@ export type ScrapeConfig = {
   // requests per minute, since all assets are still loaded as quickly as
   // possible after the page.
   ppmLimit: number,
+  // If set, the network adapter will be set to replay mode before running. This
+  // is useful to test that the crawler is working correctly.
+  dryRun?: boolean,
 };
 
 export type ScrapeState = "initialized" | "running" | "finished" | "canceled";
