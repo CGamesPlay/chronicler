@@ -27,3 +27,13 @@ Chronicler is functional but very early in development. Many features you might 
 
 Thanks for your interest in contributing! 🙌 There are many ways to contribute to Chronicler. Get started [here](CONTRIBUTING.md).
 
+## Credits
+
+Chronicle is provided under the MIT license and is built using open source software. The `package.json` file lists the software that was used to build Chronicle.
+
+### Inspiration and alternatives
+
+If you like the idea of Chronicler, you might also be interested in:
+
+- [wget](https://www.gnu.org/software/wget/) can [mirror websites](https://www.petekeen.net/archiving-websites-with-wget) with some configuration.
+- [Webrecorder](https://webrecorder.io) provides a cloud-based solution to web archiving, and a separate offline viewer program.
