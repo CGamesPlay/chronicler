@@ -1,29 +1,10 @@
 // @flow
 import * as React from "react";
+import TimeAgo from "javascript-time-ago";
+import en from "javascript-time-ago/locale/en";
 
-const relativeString = (msec: number): string => {
-  let secs = msec / 1000;
-  let append = "";
-  if (secs < 0) {
-    append = " ago";
-    secs *= -1;
-  }
-  let approx;
-  if (secs < 60) {
-    approx = "<1m";
-  } else if (secs < 3600) {
-    approx = `${Math.round(secs / 60)}m`;
-  } else if (secs < 86400) {
-    approx = `${Math.round(secs / 3600)}h`;
-  } else if (secs < 604800) {
-    approx = `${Math.round(secs / 86400)}d`;
-  } else if (secs < 22896000) {
-    approx = `${Math.round(secs / 604800)}w`;
-  } else {
-    approx = `${Math.round(secs / 22896000)}y`;
-  }
-  return approx + append;
-};
+TimeAgo.addLocale(en);
+const timeAgo = new TimeAgo("en-US");
 
 type Props = {
   value: string,
@@ -33,9 +14,7 @@ type Props = {
 const Timestamp = ({ value, format }: Props) => {
   const date = new Date(value);
   const formatted =
-    format === "date"
-      ? date.toLocaleDateString()
-      : relativeString(date - new Date());
+    format === "date" ? date.toLocaleDateString() : timeAgo.format(date);
   return <span title={date.toLocaleString()}>{formatted}</span>;
 };
 

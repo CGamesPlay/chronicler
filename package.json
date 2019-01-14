@@ -32,6 +32,7 @@
     "classnames": "^2.2.6",
     "formik": "^1.4.1",
     "into-stream": "^4.0.0",
+    "javascript-time-ago": "^2.0.1",
     "knex": "^0.16.3",
     "objection": "^1.4.0",
     "react": "^16.6.3",

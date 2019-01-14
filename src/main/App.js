@@ -109,6 +109,10 @@ if (process.platform === "darwin") {
   ];
 }
 
+if (isDevelopment) {
+  menuTemplate[2].submenu.push({ role: "toggledevtools" });
+}
+
 export default class App extends EventEmitter {
   id: string;
   chromeHeight: number;

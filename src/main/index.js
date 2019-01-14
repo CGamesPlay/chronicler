@@ -30,6 +30,8 @@ app.on("activate", () => {
   // been closed
   if (mainApp === null) {
     createMainApp();
+  } else {
+    mainApp.window.show();
   }
 });
 
