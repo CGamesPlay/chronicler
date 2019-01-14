@@ -53,6 +53,8 @@ type IpcHandler = (message: any) => Promise<any>;
 
 const chromeErrorUrl = "chrome-error://chromewebdata/";
 
+const dropFragment = (url: string): string => url.replace(/#.*/, "");
+
 // Keeps track of URL and title changes in the context of a single navigation.
 class PageTracker {
   archive: Archive;
@@ -72,7 +74,7 @@ class PageTracker {
   ) {
     this.archive = archive;
     this.collectionId = collectionId;
-    this.rootUrl = rootUrl;
+    this.rootUrl = dropFragment(rootUrl);
     this.currentPageId = this.rootPageId = this.collectionId.then(
       collectionId =>
         this.archive.upsertPage({
@@ -83,7 +85,8 @@ class PageTracker {
     );
   }
 
-  trackInPageNavigation(url: string, title: string) {
+  trackInPageNavigation(originalUrl: string, title: string) {
+    const url = dropFragment(originalUrl);
     this.rootPageId.then(id => {
       this.currentPageId = this.collectionId.then(collectionId =>
         this.archive.upsertPage({

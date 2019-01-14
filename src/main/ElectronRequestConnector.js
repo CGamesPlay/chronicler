@@ -30,7 +30,14 @@ export default class ElectronRequestConnector {
         if (contentLength > 0) {
           headers = { ...headers, "Content-Length": contentLength };
         }
-        const request = { ...electronRequest, headers, uploadData: stream };
+        // Drop the fragment identifier from the request
+        const url = electronRequest.url.replace(/#.*/, "");
+        const request = {
+          ...electronRequest,
+          url,
+          headers,
+          uploadData: stream,
+        };
         return this.networkAdapter.request(request);
       })
       .then(callback)
