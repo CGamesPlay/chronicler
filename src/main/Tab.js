@@ -1,5 +1,5 @@
 // @flow
-import { BrowserView, Menu } from "electron";
+import { BrowserView, Menu, clipboard, shell } from "electron";
 import EventEmitter from "events";
 import * as path from "path";
 
@@ -14,8 +14,8 @@ declare var __static: string;
 type ContextMenuRequest = {
   x: number,
   y: number,
-  linkURL?: string,
-  linkText?: string,
+  linkURL: string,
+  linkText: string,
   pageURL: string,
   frameURL: string,
   srcURL?: string,
@@ -158,6 +158,7 @@ export default class Tab extends EventEmitter {
       this.handleInPageNavigation,
     );
     this.view.webContents.on("context-menu", this.handleContextMenu);
+    this.view.webContents.on("new-window", this.handleNewWindow);
   }
 
   close() {
@@ -328,14 +329,42 @@ export default class Tab extends EventEmitter {
   handleContextMenu = (event: any, request: ContextMenuRequest) => {
     const menu = Menu.buildFromTemplate([
       {
-        label: "Open Developer Tools",
-        click: () => this.openDevTools(),
+        label: "Open Link in New Tab",
+        visible: request.linkURL.length > 0,
+        click: () => this.app.newTab(request.linkURL),
+      },
+      {
+        label: "Open Link in Default Browser",
+        visible: request.linkURL.length > 0,
+        click: () => shell.openExternal(request.linkURL),
+      },
+      { type: "separator" },
+      {
+        label: "Copy Link",
+        visible: request.linkURL.length > 0,
+        click: () => clipboard.writeBookmark(request.linkText, request.linkURL),
+      },
+      { type: "separator" },
+      {
+        label: "Inspect Element",
+        click: () => this.view.webContents.inspectElement(request.x, request.y),
       },
     ]).popup({
       window: this.view,
       x: request.x,
       y: request.y + this.app.chromeHeight,
     });
+  };
+
+  handleNewWindow = (
+    e: any,
+    url: string,
+    frameName: string,
+    disposition: string,
+  ) => {
+    e.preventDefault();
+    const tab = this.app.newTab(url);
+    e.newGuest = tab.view;
   };
 
   installIpcServer(webContents: any) {

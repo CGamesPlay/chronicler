@@ -207,16 +207,17 @@ export default class App extends EventEmitter {
     this.window.webContents.send(CHROME_MESSAGE, { type, payload });
   }
 
-  newTab() {
+  newTab(initialUrl: ?string): Tab {
     const tab = new Tab(this, Tab.nextTabId());
     this.tabs.push(tab);
     this.activeTab = tab;
     tab.on(TAB_UPDATE, this.handleTabUpdate);
     tab.on(TAB_CLOSE, this.handleTabClose);
-    tab.loadURL(newTabUrl);
+    tab.loadURL(initialUrl || newTabUrl);
     tab.setIpcHandler(this.handleContentIpc);
     this.updateActiveTab();
     this.sendChromeMessage(TAB_UPDATE, tab.toJSON());
+    return tab;
   }
 
   isRecording(): boolean {
