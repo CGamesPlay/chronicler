@@ -317,6 +317,8 @@ export default class Tab extends EventEmitter {
         .then(({ command, payload }) => {
           if (command === "open-url") {
             this.loadURL(payload);
+          } else if (command === "open-external") {
+            shell.openExternal(payload);
           } else if (command === "start-recording") {
             this.app.handleRequestNetworkMode({ mode: "record" });
           } else {

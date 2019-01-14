@@ -24,6 +24,11 @@ const ErrorPage = ({ url, code, error, onResolve }: Props) => {
       </a>,
     );
     actions.push(
+      <a onClick={() => onResolve({ command: "open-external", payload: url })}>
+        Open in default browser
+      </a>,
+    );
+    actions.push(
       <a
         onClick={() =>
           onResolve({ command: "open-url", payload: contentUrl(allPagesUrl) })
