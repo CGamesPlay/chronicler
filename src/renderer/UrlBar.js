@@ -77,16 +77,18 @@ export default class UrlBar extends React.PureComponent<Props, State> {
       if (inputEl) {
         inputEl.value = displayedUrl(this.props.url);
       }
-    } else {
-      this.setState({ isEditing: true });
     }
   };
 
-  handleClick = (event: Event) => {
+  handleChange = (e: Event) => {
+    this.setState({ isEditing: true });
+  };
+
+  handleFocus = (event: Event) => {
     const inputEl = this.urlInput;
     if (!inputEl) return;
     event.preventDefault();
-    inputEl.select();
+    setTimeout(() => inputEl.select(), 10);
   };
 
   handleBlur = (event: Event) => {
@@ -106,7 +108,8 @@ export default class UrlBar extends React.PureComponent<Props, State> {
               "is-primary": this.state.isEditing,
             })}
             onKeyDown={this.handleKeyPress}
-            onClick={this.handleClick}
+            onChange={this.handleChange}
+            onFocus={this.handleFocus}
             onBlur={this.handleBlur}
           />
         </form>
