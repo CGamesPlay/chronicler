@@ -19,7 +19,7 @@ Chronicler is an offline-first web browser. Chronicler works as your own persona
 Chronicler is functional but very early in development. Many features you might expect from a web browser have not yet been implemented. Your feedback is welcomed! Some features that have not yet been implemented include:
 
 - Keyboard shortcuts for everything (back/forward, open location, new tab).
-- Opening links in new tabs (you have to manually open a new tab presently).
+- Find in page.
 - Importing and exporting WARC files for interoperability.
 - Collections of pages, to restrict searching and manage disk space.
 
